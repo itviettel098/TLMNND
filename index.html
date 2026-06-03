@@ -1347,7 +1347,6 @@ function enterGame(room){
   _lastLogLen=0;_winShown=false;_prevTurnSlot=-1;
   showScreen('gameScreen');
   document.getElementById('winOverlay').className='game-overlay';
-  document.getElementById('gameLogBody').innerHTML='';
   setTimeout(()=>{for(let i=0;i<6;i++)setTimeout(()=>SFX.cardFlip(),i*60);},200);
   startGameListener();
 }
@@ -1366,18 +1365,23 @@ let _lastLogLen=0, _winShown=false, _prevTurnSlot=-1;
 function renderGameLog(logArr){
   const body = document.getElementById('gameLogBody');
   if(!body) return;
-  body.innerHTML = logArr.map((entry, i) => {
+  const rendered = body.children.length;
+  for(let i = rendered; i < logArr.length; i++){
+    const entry = logArr[i];
     let cls = 'log-entry';
-    if(i===0) cls += ' log-first';
-    else if(entry.includes('💣')||entry.includes('bomb')||entry.includes('Tứ Quý')) cls += ' log-bomb';
+    if(body.children.length === 0) cls += ' log-first';
+    else if(entry.includes('💣')||entry.includes('Tứ Quý')) cls += ' log-bomb';
     else if(entry.includes('THẮNG')||entry.includes('thắng')) cls += ' log-win';
     else if(entry.includes('bỏ lượt')) cls += ' log-pass';
     else if(entry.includes('⏰')||entry.includes('hết giờ')) cls += ' log-timeout';
-    return `<div class="${cls}">${escHtml(entry)}</div>`;
-  }).join('');
+    else if(entry.includes('VÁN')&&entry.includes('BẮT ĐẦU')) cls += ' log-first';
+    const div = document.createElement('div');
+    div.className = cls;
+    div.textContent = entry;
+    body.appendChild(div);
+  }
   body.scrollTop = body.scrollHeight;
 }
-
 function renderGame(room){
   if(!room||!room.gameState)return;
   const gs=room.gameState;const my=App.mySlot,op=1-my;
@@ -1632,7 +1636,7 @@ window.doNewRound=async function(){
   const newGs=createGameState(room.players,room.playerDisplays,newRound,lastWinner);
   newGs.scores=scores;
   SFX.resetLastTurn();
-  document.getElementById('gameLogBody').innerHTML='';
+  
   await dbUpdate('rooms/'+App.currentRoom,{gameState:newGs,status:'playing',round:newRound});
   App.selected=new Set();
   setTimeout(()=>{for(let i=0;i<6;i++)setTimeout(()=>SFX.cardFlip(),i*60);},200);
