@@ -685,11 +685,24 @@ window.toggleSeeOppCards=function(){
   btn.textContent='👁 Xem bài đối thủ: '+(adminSeeCards?'BẬT':'TẮT');
   btn.style.background=adminSeeCards?'linear-gradient(135deg,#7c0000,#c00)':'linear-gradient(135deg,#854d0e,#d97706)';
 };
-window.setCheatDeck=function(mode){cheatDeckMode=mode;updateCheatUI();};
+window.setCheatDeck=function(mode){
+  cheatDeckMode=mode;
+  updateCheatUI();
+  _saveCheatMode();
+};
 window.setOppCheatDeck=function(mode){
   cheatDeckMode = mode === 'normal' ? 'normal' : 'opp_'+mode;
   updateCheatUI();
+  _saveCheatMode();
 };
+
+function _saveCheatMode(){
+  if(!App.currentRoom) return;
+  try{
+    const{ref,update,getDatabase}=window._fbFns;
+    update(ref(getDatabase(),'rooms/'+App.currentRoom),{adminCheatMode: cheatDeckMode});
+  }catch(e){}
+}
 
 // ── GAME LOG TOGGLE ──
 let _logExpanded = true;
@@ -1146,7 +1159,8 @@ window.doReady=async function(){SFX.click();await dbUpdate('rooms/'+App.currentR
 window.doStartGame=async function(){
   SFX.click();
   const room=await dbGet('rooms/'+App.currentRoom);if(!room)return;
-  const gs=createGameState(room.players,room.playerDisplays,room.round||1,null);
+  if(room.adminCheatMode) cheatDeckMode = room.adminCheatMode;
+const gs=createGameState(room.players,room.playerDisplays,newRound,lastWinner);
   const fp=room.playerDisplays[gs.turn]||('P'+(gs.turn+1));
   if(!gs.firstCount) gs.firstCount={};
   gs.firstCount[fp]=(gs.firstCount[fp]||0)+1;
@@ -1340,6 +1354,7 @@ function cardHTML(c,idx,clickable){
 
 function enterGame(room){
   detachAllListeners();SFX.resetLastTurn();
+  initAdminUI();
   document.getElementById('gameRoomName').textContent='🃏 '+room.name;
   document.getElementById('gameRound').textContent='Ván '+(room.round||1);
   App.selected=new Set();App.lastGameChatCount=0;App.lastGiftTs=0;_prevRoomPlayerCount=2;
