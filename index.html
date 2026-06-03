@@ -701,6 +701,8 @@ window.setOppCheatDeck=function(mode){
 };
 (function(){
   const panel=document.getElementById('cheatPanel');
+  const handle=panel.querySelector('.cheat-title');
+  handle.style.cursor='grab';
   let dragging=false,ox=0,oy=0;
   function onDown(e){
     const t=e.touches?e.touches[0]:e;
@@ -717,10 +719,10 @@ window.setOppCheatDeck=function(mode){
     panel.style.top=(t.clientY-oy)+'px';
   }
   function onUp(){dragging=false;}
-  panel.addEventListener('mousedown',onDown);
+  handle.addEventListener('mousedown',onDown);
   document.addEventListener('mousemove',onMove);
   document.addEventListener('mouseup',onUp);
-  panel.addEventListener('touchstart',onDown,{passive:false});
+  handle.addEventListener('touchstart',onDown,{passive:false});
   document.addEventListener('touchmove',onMove,{passive:false});
   document.addEventListener('touchend',onUp);
 })();
