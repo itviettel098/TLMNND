@@ -1877,29 +1877,34 @@ let _isReconnecting = false;
 function startPingSystem(){
   stopPingSystem();
   if(!App.currentRoom || !App.currentUser) return;
+
   _pingInterval = setInterval(async ()=>{
     if(!App.currentRoom || !App.currentUser) return;
     const t0 = Date.now();
     try{
       await dbUpdate('rooms/'+App.currentRoom, {
-        [`pings/${App.currentUser.username}`]: {ts: t0, slot: App.mySlot}
+        [`pings/${App.currentUser.username}`]: {
+          ts: Date.now(), slot: App.mySlot, display: App.currentUser.display
+        }
       });
-      const ping = Date.now() - t0;
-      renderMyPing(ping);
-      _isReconnecting = false;
+      const rtt = Date.now() - t0;
+      renderPingBadge('myPing', rtt);
+      if(_isReconnecting){ _isReconnecting=false; showTurnToast('✅ Đã kết nối lại!'); }
     } catch(e){
-      renderMyPing(-1);
+      renderPingBadge('myPing', -1);
       if(!_isReconnecting) tryReconnect();
     }
   }, 3000);
 
-  // đọc ping của đối thủ
-  App.listeners.pings = dbListen('rooms/'+App.currentRoom+'/pings', (pings)=>{
+  const pingsRef = ref(getDatabase(), 'rooms/'+App.currentRoom+'/pings');
+  App.listeners.pings = pingsRef;
+  onValue(pingsRef, (snap)=>{
+    const pings = snap.exists() ? snap.val() : null;
     if(!pings) return;
     Object.entries(pings).forEach(([uname, data])=>{
       if(uname !== App.currentUser.username){
         const age = Date.now() - (data.ts||0);
-        renderOppPing(age < 6000 ? age : -1);
+        renderPingBadge('oppPing', age < 8000 ? Math.min(age,999) : -1);
       }
     });
   });
@@ -1908,48 +1913,48 @@ function startPingSystem(){
 function stopPingSystem(){
   if(_pingInterval){ clearInterval(_pingInterval); _pingInterval=null; }
   if(_reconnectTimeout){ clearTimeout(_reconnectTimeout); _reconnectTimeout=null; }
-  if(App.listeners.pings){ dbUnlisten(App.listeners.pings); delete App.listeners.pings; }
+  if(App.listeners.pings){
+    try{ off(App.listeners.pings); }catch(e){}
+    delete App.listeners.pings;
+  }
+  ['myPing','oppPing'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.style.display='none';
+  });
 }
 
-function renderMyPing(ms){
-  const el = document.getElementById('myPing');
+function renderPingBadge(elId, ms){
+  const el=document.getElementById(elId);
   if(!el) return;
-  if(ms < 0){ el.textContent='📶 mất mạng'; el.className='ping-badge ping-bad'; el.style.display=''; return; }
-  const cls = ms < 100 ? 'ping-good' : ms < 250 ? 'ping-ok' : 'ping-bad';
-  el.textContent = '📶 '+ms+'ms';
-  el.className = 'ping-badge ' + cls;
-  el.style.display = '';
-}
-
-function renderOppPing(ms){
-  const el = document.getElementById('oppPing');
-  if(!el) return;
-  if(ms < 0){ el.textContent='📶 mất mạng'; el.className='ping-badge ping-bad'; el.style.display=''; return; }
-  const cls = ms < 100 ? 'ping-good' : ms < 250 ? 'ping-ok' : 'ping-bad';
-  el.textContent = '📶 '+ms+'ms';
-  el.className = 'ping-badge ' + cls;
-  el.style.display = '';
+  el.style.display='';
+  if(ms<0){ el.innerHTML='📶 mất mạng'; el.className='ping-badge ping-bad'; return; }
+  const cls = ms<120?'ping-good': ms<300?'ping-ok':'ping-bad';
+  el.innerHTML='📶 '+ms+'ms';
+  el.className='ping-badge '+cls;
 }
 
 async function tryReconnect(){
   if(_isReconnecting) return;
-  _isReconnecting = true;
+  _isReconnecting=true;
   showTurnToast('🔄 Đang kết nối lại...');
+  renderPingBadge('myPing', -1);
+
   _reconnectTimeout = setTimeout(async ()=>{
     if(!App.currentRoom || !App.currentUser){ _isReconnecting=false; return; }
     try{
       const room = await dbGet('rooms/'+App.currentRoom);
-      if(!room){ _isReconnecting=false; showLobby(); return; }
-      showTurnToast('✅ Đã kết nối lại!');
-      _isReconnecting = false;
-      // restart listener nếu cần
-      if(!App.listeners.game){
-        startGameListener();
-        startPingSystem();
+      if(!room){
+        _isReconnecting=false;
+        alert('Phòng không còn tồn tại.');
+        detachAllListeners();
+        App.currentRoom=null; App.mySlot=-1;
+        showLobby(); return;
       }
+      if(!App.listeners.game) startGameListener();
+      startPingSystem(); // ← fix chính: restart ping sau reconnect
     } catch(e){
-      _isReconnecting = false;
-      tryReconnect(); // thử lại
+      _isReconnecting=false;
+      _reconnectTimeout=setTimeout(tryReconnect, 3000);
     }
   }, 2000);
 }
