@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -6,6 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
 <title>Bài Online — Tiến Lên Miền Nam</title>
 <style>
+#oppReviewCards .card {
+  margin-left: 0 !important;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+#oppReviewCards .card.red { color: #e74c3c; }
+#oppReviewCards .card.black { color: #1a1a1a; }
 @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;800&family=Noto+Sans:wght@400;600&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -235,14 +241,79 @@ body{font-family:'Noto Sans',sans-serif;background:var(--green-dark);min-height:
 .btn-pass{background:#dc2626;color:#fff;}
 .btn-sort{background:#2563eb;color:#fff;}
 .btn-hint{background:#d97706;color:#fff;}
-.game-log{display:none!important;}
-.game-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.8);display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:100;}
+
+/* ── GAME LOG — CHANGED: now visible ── */
+.game-log{
+  background:rgba(0,0,0,0.3);
+  border-radius:12px;
+  overflow:hidden;
+  margin-top:2px;
+}
+.game-log-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:7px 12px;
+  background:rgba(0,0,0,0.2);
+  border-bottom:1px solid rgba(255,255,255,0.07);
+  cursor:pointer;
+  user-select:none;
+}
+.game-log-title{
+  color:rgba(255,255,255,0.5);
+  font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;
+}
+.game-log-toggle{color:rgba(255,255,255,0.35);font-size:11px;}
+.game-log-body{
+  height:90px;overflow-y:auto;
+  padding:6px 12px;
+  display:flex;flex-direction:column;gap:2px;
+}
+.log-entry{
+  font-size:11px;color:rgba(255,255,255,0.6);line-height:1.5;
+  border-bottom:1px solid rgba(255,255,255,0.04);padding-bottom:2px;
+}
+.log-entry.log-first{color:var(--gold);font-weight:700;}
+.log-entry.log-win{color:#2ecc71;font-weight:700;}
+.log-entry.log-bomb{color:#e74c3c;font-weight:700;}
+.log-entry.log-pass{color:rgba(255,255,255,0.35);font-style:italic;}
+.log-entry.log-timeout{color:#e67e22;font-style:italic;}
+
+.game-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);display:none;flex-direction:column;align-items:center;justify-content:center;gap:0;z-index:100;overflow-y:auto;padding:16px 0;}
 .game-overlay.show{display:flex;}
-.overlay-card{background:var(--surface);border-radius:20px;padding:32px 40px;text-align:center;max-width:320px;box-shadow:0 20px 60px rgba(0,0,0,0.5);}
-.overlay-icon{font-size:52px;margin-bottom:8px;}
-.overlay-title{font-family:'Baloo 2',cursive;font-size:26px;font-weight:800;color:var(--green-dark);margin-bottom:8px;}
-.overlay-msg{color:var(--text2);font-size:14px;line-height:1.6;margin-bottom:20px;}
+.overlay-card{background:var(--surface);border-radius:20px;padding:24px 28px;text-align:center;max-width:360px;width:92%;box-shadow:0 20px 60px rgba(0,0,0,0.5);}
+.overlay-icon{font-size:44px;margin-bottom:6px;}
+.overlay-title{font-family:'Baloo 2',cursive;font-size:24px;font-weight:800;color:var(--green-dark);margin-bottom:6px;}
+.overlay-msg{color:var(--text2);font-size:13px;line-height:1.5;margin-bottom:14px;}
+
+/* ── OPP REVIEW SECTION IN OVERLAY ── */
+.opp-review-section{
+  background:linear-gradient(135deg,#0f3d20,#0a2e15);
+  border-radius:14px;
+  padding:14px 14px 10px;
+  margin-bottom:14px;
+  border:1.5px solid rgba(245,200,66,0.4);
+  text-align:left;
+}
+.opp-review-title{
+  color:var(--gold);font-family:'Baloo 2',cursive;font-weight:800;font-size:13px;
+  margin-bottom:10px;text-align:center;
+}
+.opp-review-cards{
+  display:flex;flex-wrap:wrap;gap:6px;justify-content:center;
+  min-height:60px;align-items:center;
+}
+.opp-review-cards .card{
+  margin-left:0 !important;
+  transform:scale(0.92);
+  cursor:default;
+}
+.opp-review-cards .card:hover{transform:scale(0.92) !important;}
+.opp-review-stats{
+  margin-top:8px;text-align:center;
+  color:rgba(255,255,255,0.65);font-size:11px;
+}
+
 .btn-again{width:100%;padding:12px;background:var(--green-mid);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;font-family:'Baloo 2',cursive;cursor:pointer;}
+.btn-again:hover{background:var(--green-light);}
 
 /* ── TURN TIMER ── */
 .turn-timer{
@@ -280,20 +351,13 @@ body{font-family:'Noto Sans',sans-serif;background:var(--green-dark);min-height:
 .opp-hand-row.revealed .card{animation:revealCard .3s ease forwards;}
 
 /* ── FLOATING GIFTS CANVAS ── */
-#giftCanvas{
-  position:fixed;inset:0;
-  pointer-events:none;
-  z-index:9999;
-  overflow:hidden;
-}
+#giftCanvas{position:fixed;inset:0;pointer-events:none;z-index:9999;overflow:hidden;}
 </style>
 </head>
 <body>
 
-<!-- FLOATING GIFTS CANVAS (above everything, pointer-events:none) -->
 <canvas id="giftCanvas"></canvas>
 
-<!-- ADMIN FEATURES (itviettel098 only) -->
 <div class="admin-badge" id="adminBadge">👑 ADMIN MODE</div>
 <button class="btn-cheat-toggle" id="cheatToggle" onclick="toggleCheatPanel()">⚡</button>
 <div class="cheat-panel" id="cheatPanel">
@@ -508,9 +572,17 @@ body{font-family:'Noto Sans',sans-serif;background:var(--green-dark);min-height:
         <button class="btn-ctrl btn-pass" id="btnPass" onclick="doPass()">Bỏ lượt</button>
       </div>
     </div>
-    <div class="game-log" id="gameLog"></div>
+
+    <!-- ── GAME LOG — NOW VISIBLE WITH TOGGLE ── -->
+    <div class="game-log" id="gameLog">
+      <div class="game-log-header" onclick="toggleGameLog()">
+        <span class="game-log-title">📋 Lịch sử ván chơi</span>
+        <span class="game-log-toggle" id="logToggleIcon">▾ ẩn</span>
+      </div>
+      <div class="game-log-body" id="gameLogBody"></div>
+    </div>
+
     <div class="game-chat">
-      <!-- GIFT BUTTONS -->
       <div class="gift-btn-bar">
         <button class="btn-gift" onclick="sendGiftEffect('rose')" title="Tặng hoa hồng">🌹 Hoa hồng</button>
         <button class="btn-gift" onclick="sendGiftEffect('kiss')" title="Gửi nụ hôn">💋 Nụ hôn</button>
@@ -538,13 +610,19 @@ body{font-family:'Noto Sans',sans-serif;background:var(--green-dark);min-height:
   </div>
 </div>
 
-<!-- WIN OVERLAY -->
+<!-- WIN OVERLAY — includes opponent remaining cards -->
 <div class="game-overlay" id="winOverlay">
   <div class="overlay-card">
     <div class="overlay-icon" id="winIcon">🏆</div>
     <div class="overlay-title" id="winTitle">THẮNG!</div>
     <div class="overlay-msg" id="winMsg">Chúc mừng!</div>
-    <button class="btn-again" onclick="doNewRound()">Ván Mới</button>
+    <!-- OPP REMAINING CARDS SECTION -->
+    <div class="opp-review-section" id="oppReviewSection" style="display:none;">
+      <div class="opp-review-title">🃏 Bài còn lại của đối thủ</div>
+      <div class="opp-review-cards" id="oppReviewCardsInOverlay"></div>
+      <div class="opp-review-stats" id="oppReviewStatsInOverlay"></div>
+    </div>
+    <button class="btn-again" onclick="doNewRound()">🎴 Ván Mới</button>
   </div>
 </div>
 
@@ -609,10 +687,22 @@ window.setOppCheatDeck=function(mode){
   updateCheatUI();
 };
 
-// ══════════════════════════════════════════════════
-// FLOATING GIFTS — Canvas-based, pointer-events:none
-// Hoàn toàn không ảnh hưởng tới UI game
-// ══════════════════════════════════════════════════
+// ── GAME LOG TOGGLE ──
+let _logExpanded = true;
+window.toggleGameLog = function(){
+  _logExpanded = !_logExpanded;
+  const body = document.getElementById('gameLogBody');
+  const icon = document.getElementById('logToggleIcon');
+  if(_logExpanded){
+    body.style.display = '';
+    icon.textContent = '▾ ẩn';
+  } else {
+    body.style.display = 'none';
+    icon.textContent = '▸ hiện';
+  }
+};
+
+// ── FLOATING GIFTS ──
 const GiftFX = (()=>{
   const canvas = document.getElementById('giftCanvas');
   const ctx = canvas.getContext('2d');
@@ -637,7 +727,6 @@ const GiftFX = (()=>{
     constructor(type){
       const emojis = EMOJIS[type] || EMOJIS.rose;
       this.emoji = emojis[Math.floor(Math.random()*emojis.length)];
-      // Spawn at random x along bottom-ish or random edge
       this.x = Math.random() * canvas.width;
       this.y = canvas.height + 40;
       this.size = 20 + Math.random()*22;
@@ -648,11 +737,9 @@ const GiftFX = (()=>{
       this.alpha = 1;
       this.life = 0;
       this.maxLife = 180 + Math.floor(Math.random()*80);
-      // Wobble
       this.wobbleAmp = 1.5 + Math.random()*2.5;
       this.wobbleFreq = 0.03 + Math.random()*0.04;
       this.wobbleOff = Math.random()*Math.PI*2;
-      // Type-specific
       if(type==='sparkle'){
         this.speedY = -(2.5+Math.random()*3);
         this.speedX = (Math.random()-0.5)*4;
@@ -665,12 +752,10 @@ const GiftFX = (()=>{
       this.x += this.speedX + Math.sin(this.life*this.wobbleFreq+this.wobbleOff)*this.wobbleAmp;
       this.y += this.speedY;
       this.angle += this.rot;
-      // Fade out last 40 frames
       const fadeStart = this.maxLife - 40;
       if(this.life > fadeStart){
         this.alpha = 1 - (this.life-fadeStart)/40;
       }
-      // Slow down over time
       this.speedY *= 0.998;
     }
     draw(){
@@ -702,11 +787,8 @@ const GiftFX = (()=>{
     burst(type, count){
       count = count || 18;
       for(let i=0;i<count;i++){
-        // Stagger spawn for a burst effect
         const p = new Particle(type);
-        // Randomize starting x for variety
         p.x = 80 + Math.random()*(canvas.width-160);
-        // Some come from sides too
         if(Math.random()<0.25){
           p.x = Math.random()<0.5 ? Math.random()*60 : canvas.width-Math.random()*60;
           p.y = canvas.height*0.5 + Math.random()*canvas.height*0.3;
@@ -723,18 +805,13 @@ const GiftFX = (()=>{
 window.sendGiftEffect = function(type){
   GiftFX.burst(type, 22);
   SFX.chatMsg();
-  // Also broadcast to opponent via gameChat
   if(typeof App !== 'undefined' && App.currentRoom){
-    const labels={rose:'🌹 Tặng hoa hồng!',kiss:'💋 Gửi nụ hôn!',heart:'❤️ Gửi trái tim!',sparkle:'✨ Pháo hoa!'};
-    const room_r = window._currentRoomRef;
-    // use sendGameEmoji-like mechanism
-    _sendGiftMsg(type, labels[type]||type);
+    _sendGiftMsg(type);
   }
 };
 
-async function _sendGiftMsg(type, label){
+async function _sendGiftMsg(type){
   if(!App.currentRoom) return;
-  // We'll piggyback on gameGifts node so it doesn't spam chat
   const ts = Date.now();
   try{
     const{ref,update,getDatabase}=window._fbFns;
@@ -781,7 +858,6 @@ const SFX=(()=>{
   };
 })();
 
-// ── TTS ──
 const TTS=(()=>{
   const RV={'3':'ba','4':'bốn','5':'năm','6':'sáu','7':'bảy','8':'tám','9':'chín','10':'mười','J':'bồi','Q':'đầm','K':'già','A':'ách','2':'heo'};
   const SV={s:'bích',c:'tép',d:'rô',h:'cơ'};
@@ -805,21 +881,20 @@ function escHtml(str){return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt
 
 <script type="module">
 const FIREBASE_CONFIG={
-  apiKey:"AIzaSyAG-V0G6tkbfFNWcR8GR3FVULCzTUgypp0",
-  authDomain:"project-9d69719e-fbf2-41f6-90e.firebaseapp.com",
-  databaseURL:"https://project-9d69719e-fbf2-41f6-90e-default-rtdb.firebaseio.com",
-  projectId:"project-9d69719e-fbf2-41f6-90e",
-  storageBucket:"project-9d69719e-fbf2-41f6-90e.firebasestorage.app",
-  messagingSenderId:"419042314053",
-  appId:"1:419042314053:web:0cdd55b6cd5145d0dee02c"
+  apiKey:"AIzaSyC3WvxGzwVsGYtkQfwpm37dwOncltIc9dU",
+  authDomain:"test-4ca0b.firebaseapp.com",
+  databaseURL:"https://test-4ca0b-default-rtdb.firebaseio.com",
+  projectId:"test-4ca0b",
+  storageBucket:"test-4ca0b.firebasestorage.app",
+  messagingSenderId:"1061681777355",
+  appId:"1:1061681777355:web:a7ffdeda9a61c81bd7a94e"
 };
 import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import{getDatabase,ref,set,get,update,onValue,off,push,remove,serverTimestamp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-// Expose firebase fns for gift system
 window._fbFns = {ref, update, getDatabase};
 
-const configSet=FIREBASE_CONFIG.apiKey!=="YOUR_API_KEY";
+const configSet=true;
 document.getElementById('fbNotice').style.display=configSet?'none':'block';
 
 let app,db;
@@ -1112,7 +1187,7 @@ window.sendChat=async function(){
 
 const RANK_ORDER = ['3','4','5','6','7','8','9','10','J','Q','K','A','2'];
 const SUIT_ORDER = ['s','c','d','h'];
-const TURN_LIMIT = 30; // seconds per turn
+const TURN_LIMIT = 30;
 
 function makeDeck(){
   const deck=[];
@@ -1226,6 +1301,7 @@ function cardsToStr(cards){
   return cards.map(c=>c.r+sym[c.s]).join(' ');
 }
 
+// ── createGameState: log message clearly shows who goes first and WHY ──
 function createGameState(players, displays, round, firstPlayer){
   const adminSlot = players.indexOf(ADMIN_USER);
   let deck;
@@ -1235,9 +1311,10 @@ function createGameState(players, displays, round, firstPlayer){
     deck = shuffle(makeDeck());
   }
   const hands = [sortCards(deck.slice(0,13)), sortCards(deck.slice(13,26))];
-  let fp;
+  let fp, reason;
   if(firstPlayer !== null && firstPlayer !== undefined && firstPlayer >= 0){
     fp = firstPlayer;
+    reason = '🏆 thắng ván trước → đi trước!';
   } else {
     fp = 0;
     outer: for(let p=0;p<2;p++){
@@ -1245,14 +1322,13 @@ function createGameState(players, displays, round, firstPlayer){
         if(c.r==='3'&&c.s==='s'){fp=p;break outer;}
       }
     }
+    reason = '🃏 có 3 Bích → đi trước!';
   }
-  const logMsg = firstPlayer !== null && firstPlayer !== undefined && firstPlayer >= 0
-    ? (displays[fp]||'P'+(fp+1)) + ' thắng ván trước, đi trước!'
-    : (displays[fp]||'P'+(fp+1)) + ' có 3 bích, đi trước!';
+  const firstMsg = `── VÁN ${round||1} BẮT ĐẦU ── ${displays[fp]||'P'+(fp+1)} ${reason}`;
   return{
     hands, lastPlay:[], lastPlayer:-1, passCount:0, turn:fp,
     gameOver:false, winner:-1, scores:[0,0], round:round||1,
-    turnStartAt:Date.now(), log:[logMsg]
+    turnStartAt:Date.now(), log:[firstMsg]
   };
 }
 
@@ -1271,8 +1347,10 @@ function enterGame(room){
   document.getElementById('gameRoomName').textContent='🃏 '+room.name;
   document.getElementById('gameRound').textContent='Ván '+(room.round||1);
   App.selected=new Set();App.lastGameChatCount=0;App.lastGiftTs=0;_prevRoomPlayerCount=2;
+  _lastLogLen=0;_winShown=false;_prevTurnSlot=-1;
   showScreen('gameScreen');
   document.getElementById('winOverlay').className='game-overlay';
+  document.getElementById('gameLogBody').innerHTML='';
   setTimeout(()=>{for(let i=0;i<6;i++)setTimeout(()=>SFX.cardFlip(),i*60);},200);
   startGameListener();
 }
@@ -1287,6 +1365,22 @@ function startGameListener(){
 }
 
 let _lastLogLen=0, _winShown=false, _prevTurnSlot=-1;
+
+// ── Render game log entries with colored classes ──
+function renderGameLog(logArr){
+  const body = document.getElementById('gameLogBody');
+  if(!body) return;
+  body.innerHTML = logArr.map((entry, i) => {
+    let cls = 'log-entry';
+    if(i===0) cls += ' log-first';
+    else if(entry.includes('💣')||entry.includes('bomb')||entry.includes('Tứ Quý')) cls += ' log-bomb';
+    else if(entry.includes('THẮNG')||entry.includes('thắng')) cls += ' log-win';
+    else if(entry.includes('bỏ lượt')) cls += ' log-pass';
+    else if(entry.includes('⏰')||entry.includes('hết giờ')) cls += ' log-timeout';
+    return `<div class="${cls}">${escHtml(entry)}</div>`;
+  }).join('');
+  body.scrollTop = body.scrollHeight;
+}
 
 function renderGame(room){
   if(!room||!room.gameState)return;
@@ -1314,14 +1408,18 @@ function renderGame(room){
   const lpl=document.getElementById('lastPlayerLabel');
   if(gs.lastPlayer>=0){const lpn=gs.lastPlayer===my?'Bạn':(room.playerDisplays[op]||'Đối thủ');lpl.textContent=lpn+' vừa đánh';}else lpl.textContent='';
 
+  // ── Render log ──
   const logArr=gs.log?(Array.isArray(gs.log)?gs.log:Object.values(gs.log)):[];
-  if(logArr.length>_lastLogLen&&_lastLogLen>0){
-    if(gs.lastPlayer===op&&gs.lastPlay&&gs.lastPlay.length){
-      const combo=getCombo(gs.lastPlay);
-      if(combo&&combo.type==='bomb4')SFX.bomb();else SFX.opponentPlay();
+  if(logArr.length!==_lastLogLen){
+    if(logArr.length>_lastLogLen&&_lastLogLen>0){
+      if(gs.lastPlayer===op&&gs.lastPlay&&gs.lastPlay.length){
+        const combo=getCombo(gs.lastPlay);
+        if(combo&&combo.type==='bomb4')SFX.bomb();else SFX.opponentPlay();
+      }
     }
+    _lastLogLen=logArr.length;
+    renderGameLog(logArr);
   }
-  _lastLogLen=logArr.length;
 
   const myTurn=gs.turn===my;
   if(!gs.gameOver){
@@ -1350,13 +1448,12 @@ function renderGame(room){
   document.getElementById('btnPlay').disabled=!myTurn||gs.gameOver;
   document.getElementById('btnPass').disabled=!myTurn||gs.gameOver||!lp.length;
 
-  // ── Gift effects from opponent ──
+  // ── Gift effects ──
   if(room.gameGifts){
     const gifts = Object.values(room.gameGifts);
     const latestGift = gifts.sort((a,b)=>b.ts-a.ts)[0];
     if(latestGift && latestGift.ts > App.lastGiftTs){
       App.lastGiftTs = latestGift.ts;
-      // Only show if sender is NOT current user (opponent sent it)
       if(latestGift.sender !== (App.currentUser && App.currentUser.display)){
         GiftFX.burst(latestGift.type || 'rose', 22);
         SFX.chatMsg();
@@ -1373,18 +1470,46 @@ function renderGame(room){
     gcEl.scrollTop=gcEl.scrollHeight;
   }
 
-  if(gs.gameOver&&document.getElementById('winOverlay').className==='game-overlay'){
+  // ── WIN OVERLAY: show opponent remaining cards inline ──
+  if(gs.gameOver && !_winShown){
+    _winShown=true;
     SFX.stopTurnReminder();stopImpatienceTimers();
-    const isW=gs.winner===my;
-    if(!_winShown){_winShown=true;setTimeout(()=>isW?SFX.win():SFX.lose(),300);}
-    document.getElementById('winIcon').textContent=isW?'🏆':'😔';
-    document.getElementById('winTitle').textContent=isW?'BẠN THẮNG!':'Thua rồi!';
-    const oppN=room.playerDisplays[op]||'Đối thủ';
-    document.getElementById('winMsg').textContent=isW?'Chúc mừng! Bạn đã thắng '+oppN+'!':oppN+' đã thắng. Cố lên!';
-    document.getElementById('winOverlay').className='game-overlay show';
+    const isW = gs.winner === my;
+    setTimeout(()=>isW?SFX.win():SFX.lose(),300);
+
+    window.lastGameState = gs;
+
+    document.getElementById('winIcon').textContent = isW ? '🏆' : '😔';
+    document.getElementById('winTitle').textContent = isW ? 'BẠN THẮNG!' : 'Thua rồi!';
+    const oppN = room.playerDisplays[op] || 'Đối thủ';
+    document.getElementById('winMsg').textContent = isW
+      ? 'Chúc mừng! Bạn đã thắng '+oppN+'!'
+      : oppN+' đã thắng. Cố lên!';
+
+    // Show opp remaining cards in overlay
+    const oppRemaining = gs.hands[op] || [];
+    const reviewSection = document.getElementById('oppReviewSection');
+    const reviewCards = document.getElementById('oppReviewCardsInOverlay');
+    const reviewStats = document.getElementById('oppReviewStatsInOverlay');
+    if(oppRemaining.length > 0){
+      reviewSection.style.display = '';
+      reviewCards.innerHTML = oppRemaining.map(c => cardHTML(c,-1,false)).join('');
+      const twos = oppRemaining.filter(c=>c.r==='2').length;
+      const aces = oppRemaining.filter(c=>c.r==='A').length;
+      reviewStats.innerHTML = `<strong>${oppRemaining.length} lá còn lại</strong>${twos?' · '+twos+' Heo':''}${aces?' · '+aces+' Át':''}`;
+    } else {
+      reviewSection.style.display = 'none';
+    }
+
+    document.getElementById('winOverlay').className = 'game-overlay show';
   }
-  if(!gs.gameOver) startTurnTimer(myTurn, gs.turnStartAt, gs.turn);
-  else stopTurnTimer();
+
+  if(!gs.gameOver){
+    // Track timer using patched version
+    window._patchedTimerFn ? window._patchedTimerFn(myTurn, gs.turnStartAt, gs.turn) : startTurnTimer(myTurn, gs.turnStartAt, gs.turn);
+  } else {
+    stopTurnTimer();
+  }
 }
 
 window.toggleCard=function(i){
@@ -1412,11 +1537,14 @@ window.doPlay=async function(){
   newGs.hands[App.mySlot]=newGs.hands[App.mySlot].filter((_,i)=>!sel.includes(i));
   newGs.lastPlay=played;newGs.lastPlayer=App.mySlot;newGs.passCount=0;
   const logArr=Array.isArray(newGs.log)?newGs.log:Object.values(newGs.log||{});
-  logArr.push((room.playerDisplays[App.mySlot]||'Bạn')+' đánh: '+cardsToStr(played));
+  const comboLabel = combo.type==='bomb4'?'💣 TỨ QUÝ':'';
+  logArr.push((room.playerDisplays[App.mySlot]||'Bạn')+' đánh: '+cardsToStr(played)+(comboLabel?' '+comboLabel:''));
   newGs.log=logArr;
   if(newGs.hands[App.mySlot].length===0){
     newGs.gameOver=true;newGs.winner=App.mySlot;
     newGs.scores[App.mySlot]=(newGs.scores[App.mySlot]||0)+1;
+    logArr.push('🏆 '+(room.playerDisplays[App.mySlot]||'Bạn')+' THẮNG VÁN '+newGs.round+'!');
+    newGs.log=logArr;
   } else {
     newGs.turn=1-App.mySlot;newGs.turnStartAt=Date.now();
   }
@@ -1424,13 +1552,11 @@ window.doPlay=async function(){
   await dbUpdate('rooms/'+App.currentRoom,{gameState:newGs});
 };
 
-// ── AUTO PASS khi hết giờ (chỉ người có lượt mới ghi) ──
 window.doForcePass=async function(){
   const room=await dbGet('rooms/'+App.currentRoom);if(!room||!room.gameState)return;
   const gs=room.gameState;if(gs.turn!==App.mySlot||gs.gameOver)return;
-  // Double-check timer hasn't been reset (another client might have already acted)
   const elapsed=Math.floor((Date.now()-(gs.turnStartAt||Date.now()))/1000);
-  if(elapsed < TURN_LIMIT - 1) return; // Not actually expired, skip
+  if(elapsed < TURN_LIMIT - 1) return;
   SFX.pass();stopImpatienceTimers();
   const newGs=JSON.parse(JSON.stringify(gs));
   const logArr=Array.isArray(newGs.log)?newGs.log:Object.values(newGs.log||{});
@@ -1502,9 +1628,13 @@ window.doHint=async function(){
 
 function setGameStatus(msg){document.getElementById('gameStatus').textContent=msg;}
 
+// ── doNewRound: hide overlay FIRST, then deal new cards ──
 window.doNewRound=async function(){
-  SFX.click();_winShown=false;_lastLogLen=0;_prevTurnSlot=-1;
+  SFX.click();
+  // Hide overlay immediately when button clicked
   document.getElementById('winOverlay').className='game-overlay';
+  _winShown=false;_lastLogLen=0;_prevTurnSlot=-1;
+
   const room=await dbGet('rooms/'+App.currentRoom);if(!room)return;
   const prevGs=room.gameState;
   const scores=prevGs&&prevGs.scores?prevGs.scores:[0,0];
@@ -1513,6 +1643,8 @@ window.doNewRound=async function(){
   const newGs=createGameState(room.players,room.playerDisplays,newRound,lastWinner);
   newGs.scores=scores;
   SFX.resetLastTurn();
+  // Clear log body before new round renders
+  document.getElementById('gameLogBody').innerHTML='';
   await dbUpdate('rooms/'+App.currentRoom,{gameState:newGs,status:'playing',round:newRound});
   App.selected=new Set();
   setTimeout(()=>{for(let i=0;i<6;i++)setTimeout(()=>SFX.cardFlip(),i*60);},200);
@@ -1543,19 +1675,13 @@ window.sendGameEmoji=async function(emoji){
   await dbUpdate('rooms/'+App.currentRoom,{[`gameChat/${gcLen}`]:{sender:App.currentUser.display,text:emoji}});
 };
 
-// ══════════════════════════════════════════════════════
-// TURN TIMER — ĐẾM NGƯỢC, AUTO PASS KHI HẾT GIỜ
-// Cả mình lẫn đối thủ đều hiện timer dựa trên turnStartAt
-// Chỉ người có lượt mới gọi doForcePass (tránh race condition)
-// ══════════════════════════════════════════════════════
+// ── TURN TIMER ──
 let _timerRaf = null;
 let _lastTickSecond = -1;
-let _forcePassFired = false; // prevent double-fire in same turn
+let _forcePassFired = false;
 
 function startTurnTimer(isMyTurn, turnStartAt, currentTurnSlot){
-  // Cancel previous RAF
   if(_timerRaf){ cancelAnimationFrame(_timerRaf); _timerRaf=null; }
-
   const myEl  = document.getElementById('myTimer');
   const oppEl = document.getElementById('oppTimer');
 
@@ -1563,26 +1689,21 @@ function startTurnTimer(isMyTurn, turnStartAt, currentTurnSlot){
     const elapsed = Math.floor((Date.now() - (turnStartAt || Date.now())) / 1000);
     const left    = Math.max(0, TURN_LIMIT - elapsed);
     const urgent  = left <= 8;
-
-    // Reset both, then set the active one
     if(myEl)  { myEl.textContent='';  myEl.className='turn-timer hidden'; }
     if(oppEl) { oppEl.textContent=''; oppEl.className='turn-timer hidden'; }
-
     if(isMyTurn){
       if(myEl){
         myEl.textContent = left;
         myEl.className = 'turn-timer' + (urgent?' urgent':'');
       }
-      // Tick sound for last 5 seconds
       if(urgent && left > 0 && left !== _lastTickSecond){
         _lastTickSecond = left;
         if(left <= 5) SFX.tick();
       }
-      // Auto pass — fired once per turn
       if(left <= 0 && !_forcePassFired){
         _forcePassFired = true;
         doForcePass();
-        return; // stop RAF
+        return;
       }
     } else {
       if(oppEl){
@@ -1590,10 +1711,8 @@ function startTurnTimer(isMyTurn, turnStartAt, currentTurnSlot){
         oppEl.className = 'turn-timer' + (urgent?' urgent':'');
       }
     }
-
     _timerRaf = requestAnimationFrame(tick);
   }
-
   tick();
 }
 
@@ -1606,37 +1725,6 @@ function stopTurnTimer(){
   if(oppEl){oppEl.textContent='';oppEl.className='turn-timer hidden';}
 }
 
-// Reset force-pass flag whenever turn changes
-// (called from renderGame when _prevTurnSlot changes)
-function resetForcePass(){ _forcePassFired = false; }
-
-// Patch renderGame to reset flag on turn change
-const _origPrevTurnSlot_check = ()=>{};
-// We inject flag reset into the turn-change detection already in renderGame:
-// Wrapped in a MutationObserver would be overkill; instead we hook into
-// the _prevTurnSlot variable by resetting _forcePassFired alongside it.
-// Done by patching at top of renderGame's turn-change block.
-// → See renderGame above: added resetForcePass() call below.
-
-// Patch: override startTurnTimer to also reset forcePass
-const _origStartTurnTimer = startTurnTimer;
-window._startTurnTimerPatched = function(isMyTurn, turnStartAt, turnSlot){
-  // Reset force-pass when a new turn starts (slot changed)
-  if(turnSlot !== window._lastTimerSlot){
-    window._lastTimerSlot = turnSlot;
-    _forcePassFired = false;
-    _lastTickSecond = -1;
-  }
-  _origStartTurnTimer(isMyTurn, turnStartAt, turnSlot);
-};
-// Override the call in renderGame to use patched version
-// (Since renderGame already calls startTurnTimer, we patch it globally)
-window.startTurnTimerGlobal = window._startTurnTimerPatched;
-
-// Re-patch renderGame's timer call via prototype trick:
-// Actually cleanest: just redefine startTurnTimer used in renderGame
-// renderGame calls startTurnTimer(myTurn, gs.turnStartAt, gs.turn)
-// so we patch it in place:
 (function(){
   const orig = startTurnTimer;
   window._patchedTimerFn = function(isMyTurn, turnStartAt, turnSlot){
@@ -1781,9 +1869,7 @@ document.addEventListener('keydown',e=>{
   showScreen('authScreen');
 })();
 
-// Expose App for gift sender
 window.App = App;
-
 </script>
 </body>
 </html>
