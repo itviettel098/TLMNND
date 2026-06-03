@@ -1379,10 +1379,11 @@ function renderGameLog(logArr, firstCount){
   for(let i = _lastLogLen; i < logArr.length; i++){
     const entry = logArr[i];
     const div = document.createElement('div');
-    if(entry.type==='first'){
-      div.className='log-entry log-first';
-      const cnt = firstCount&&firstCount[entry.player] ? ' (đi trước lần '+firstCount[entry.player]+')' : '';
-      div.textContent = 'Ván '+(entry.round||'?')+' — '+entry.player+' '+entry.reason+cnt;
+  if(entry.type==='first'){
+  div.className='log-entry log-first';
+  const cnt = firstCount&&firstCount[entry.player] ? ' (đi trước lần '+firstCount[entry.player]+')' : '';
+  if(i > 0){ const sep=document.createElement('div'); sep.style.cssText='border-top:1px dashed rgba(255,255,255,0.15);margin:4px 0;'; body.appendChild(sep); }
+  div.textContent = 'Ván '+(entry.round||'?')+' — '+entry.player+' '+entry.reason+cnt;
     } else if(entry.type==='win'){
       div.className='log-entry log-win';
       div.textContent = '🏆 '+entry.player+' thắng ván '+entry.round+'!';
@@ -1635,16 +1636,16 @@ function setGameStatus(msg){document.getElementById('gameStatus').textContent=ms
 window.doNewRound=async function(){
   SFX.click();
   document.getElementById('winOverlay').className='game-overlay';
-  _winShown=false;_lastLogLen=0;_prevTurnSlot=-1;
-  const logBody=document.getElementById('gameLogBody');if(logBody)logBody.innerHTML='';
-
+  _winShown=false;_prevTurnSlot=-1;
   const room=await dbGet('rooms/'+App.currentRoom);if(!room)return;
   const prevGs=room.gameState;
   const scores=prevGs&&prevGs.scores?prevGs.scores:[0,0];
   const lastWinner=prevGs&&prevGs.winner>=0?prevGs.winner:null;
   const newRound=(room.round||1)+1;
   const newGs=createGameState(room.players,room.playerDisplays,newRound,lastWinner);
-  newGs.scores=scores;
+newGs.scores=scores;
+const oldLog=(prevGs&&prevGs.log)?(Array.isArray(prevGs.log)?prevGs.log:Object.values(prevGs.log)):[];
+newGs.log=[...oldLog, ...newGs.log];
   const oldFirstCount=(prevGs&&prevGs.firstCount)||{};
   newGs.firstCount=Object.assign({},oldFirstCount);
   const fp=room.playerDisplays[newGs.turn]||('P'+(newGs.turn+1));
