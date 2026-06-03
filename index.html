@@ -1158,6 +1158,9 @@ window.doStartGame=async function(){
   SFX.click();
   const room=await dbGet('rooms/'+App.currentRoom);if(!room)return;
   const gs=createGameState(room.players,room.playerDisplays,room.round||1,null);
+  const fp=room.playerDisplays[gs.turn]||('P'+(gs.turn+1));
+  if(!gs.firstCount) gs.firstCount={};
+  gs.firstCount[fp]=(gs.firstCount[fp]||0)+1;
   await dbUpdate('rooms/'+App.currentRoom,{gameState:gs,status:'playing'});
 };
 
@@ -1327,11 +1330,12 @@ function createGameState(players, displays, round, firstPlayer){
     }
     reason = '🃏 có 3 Bích → đi trước!';
   }
-  const firstMsg = `── VÁN ${round||1} BẮT ĐẦU ── ${displays[fp]||'P'+(fp+1)} ${reason}`;
   return{
     hands, lastPlay:[], lastPlayer:-1, passCount:0, turn:fp,
     gameOver:false, winner:-1, scores:[0,0], round:round||1,
-    turnStartAt:Date.now(), log:[firstMsg]
+    turnStartAt:Date.now(),
+    log:[{type:'first', player: displays[fp]||'P'+(fp+1), reason}],
+    firstCount: {[displays[0]||'P1']: 0, [displays[1]||'P2']: 0}
   };
 }
 
@@ -1369,18 +1373,23 @@ function startGameListener(){
 
 let _lastLogLen=0, _winShown=false, _prevTurnSlot=-1;
 
-function renderGameLog(logArr){
+function renderGameLog(logArr, firstCount){
   const body = document.getElementById('gameLogBody');
   if(!body) return;
-  const rendered = body.children.length;
-  for(let i = rendered; i < logArr.length; i++){
+  for(let i = _lastLogLen; i < logArr.length; i++){
     const entry = logArr[i];
-    let cls = 'log-entry';
-    if(entry.includes('VÁN')&&entry.includes('BẮT ĐẦU')) cls += ' log-first';
-    else if(entry.includes('THẮNG')) cls += ' log-win';
     const div = document.createElement('div');
-    div.className = cls;
-    div.textContent = entry;
+    if(entry.type==='first'){
+      div.className='log-entry log-first';
+      const cnt = firstCount&&firstCount[entry.player] ? ' (đi trước lần '+firstCount[entry.player]+')' : '';
+      div.textContent = 'Ván '+' — '+entry.player+' '+entry.reason+cnt;
+    } else if(entry.type==='win'){
+      div.className='log-entry log-win';
+      div.textContent = '🏆 '+entry.player+' thắng ván '+entry.round+'!';
+    } else {
+      div.className='log-entry';
+      div.textContent = String(entry);
+    }
     body.appendChild(div);
   }
   body.scrollTop = body.scrollHeight;
@@ -1419,8 +1428,8 @@ function renderGame(room){
         if(combo&&combo.type==='bomb4')SFX.bomb();else SFX.opponentPlay();
       }
     }
+    renderGameLog(logArr, gs.firstCount);
     _lastLogLen=logArr.length;
-    renderGameLog(logArr);
   }
 
   const myTurn=gs.turn===my;
@@ -1540,12 +1549,12 @@ window.doPlay=async function(){
   if(newGs.hands[App.mySlot].length===0){
     newGs.gameOver=true;newGs.winner=App.mySlot;
     newGs.scores[App.mySlot]=(newGs.scores[App.mySlot]||0)+1;
-    logArr.push('🏆 '+(room.playerDisplays[App.mySlot]||'Bạn')+' THẮNG VÁN '+newGs.round+'!');
+    logArr.push({type:'win', player: room.playerDisplays[App.mySlot]||'Bạn', round: newGs.round});
     newGs.log=logArr;
   } else {
     newGs.turn=1-App.mySlot;newGs.turnStartAt=Date.now();
   }
-  App.selected=new Set();_lastLogLen=logArr.length;
+  App.selected=new Set();
   await dbUpdate('rooms/'+App.currentRoom,{gameState:newGs});
 };
 
@@ -1627,6 +1636,7 @@ window.doNewRound=async function(){
   SFX.click();
   document.getElementById('winOverlay').className='game-overlay';
   _winShown=false;_lastLogLen=0;_prevTurnSlot=-1;
+  const logBody=document.getElementById('gameLogBody');if(logBody)logBody.innerHTML='';
 
   const room=await dbGet('rooms/'+App.currentRoom);if(!room)return;
   const prevGs=room.gameState;
@@ -1635,6 +1645,10 @@ window.doNewRound=async function(){
   const newRound=(room.round||1)+1;
   const newGs=createGameState(room.players,room.playerDisplays,newRound,lastWinner);
   newGs.scores=scores;
+  const oldFirstCount=(prevGs&&prevGs.firstCount)||{};
+  newGs.firstCount=Object.assign({},oldFirstCount);
+  const fp=room.playerDisplays[newGs.turn]||('P'+(newGs.turn+1));
+  newGs.firstCount[fp]=(newGs.firstCount[fp]||0)+1;
   SFX.resetLastTurn();
   
   await dbUpdate('rooms/'+App.currentRoom,{gameState:newGs,status:'playing',round:newRound});
