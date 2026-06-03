@@ -1334,7 +1334,7 @@ function createGameState(players, displays, round, firstPlayer){
     hands, lastPlay:[], lastPlayer:-1, passCount:0, turn:fp,
     gameOver:false, winner:-1, scores:[0,0], round:round||1,
     turnStartAt:Date.now(),
-    log:[{type:'first', player: displays[fp]||'P'+(fp+1), reason}],
+    log:[{type:'first', player: displays[fp]||'P'+(fp+1), reason, round: round||1}],
     firstCount: {[displays[0]||'P1']: 0, [displays[1]||'P2']: 0}
   };
 }
@@ -1382,7 +1382,7 @@ function renderGameLog(logArr, firstCount){
     if(entry.type==='first'){
       div.className='log-entry log-first';
       const cnt = firstCount&&firstCount[entry.player] ? ' (đi trước lần '+firstCount[entry.player]+')' : '';
-      div.textContent = 'Ván '+' — '+entry.player+' '+entry.reason+cnt;
+      div.textContent = 'Ván '+(entry.round||'?')+' — '+entry.player+' '+entry.reason+cnt;
     } else if(entry.type==='win'){
       div.className='log-entry log-win';
       div.textContent = '🏆 '+entry.player+' thắng ván '+entry.round+'!';
