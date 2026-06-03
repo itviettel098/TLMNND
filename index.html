@@ -687,10 +687,16 @@ window.toggleSeeOppCards=function(){
   btn.textContent='👁 Xem bài đối thủ: '+(adminSeeCards?'BẬT':'TẮT');
   btn.style.background=adminSeeCards?'linear-gradient(135deg,#7c0000,#c00)':'linear-gradient(135deg,#854d0e,#d97706)';
 };
-window.setCheatDeck=function(mode){cheatDeckMode=mode;localStorage.setItem('cheatDeckMode',mode);updateCheatUI();};
+window.setCheatDeck=function(mode){
+  cheatDeckMode=mode;
+  localStorage.setItem('cheatDeckMode',mode);
+  if(App.currentRoom) dbUpdate('rooms/'+App.currentRoom,{cheatMode:mode}).catch(()=>{});
+  updateCheatUI();
+};
 window.setOppCheatDeck=function(mode){
   cheatDeckMode = mode === 'normal' ? 'normal' : 'opp_'+mode;
   localStorage.setItem('cheatDeckMode',cheatDeckMode);
+  if(App.currentRoom) dbUpdate('rooms/'+App.currentRoom,{cheatMode:cheatDeckMode}).catch(()=>{});
   updateCheatUI();
 };
 (function(){
@@ -1721,7 +1727,9 @@ window.doNewRound=async function(){
   const scores=prevGs&&prevGs.scores?prevGs.scores:[0,0];
   const lastWinner=prevGs&&prevGs.winner>=0?prevGs.winner:null;
   const newRound=(room.round||1)+1;
-  const newGs=createGameState(room.players,room.playerDisplays,newRound,lastWinner);
+  const activeCheat = room.cheatMode || 'normal';
+cheatDeckMode = activeCheat;
+const newGs=createGameState(room.players,room.playerDisplays,newRound,lastWinner);
 newGs.scores=scores;
 const oldLog=(prevGs&&prevGs.log)?(Array.isArray(prevGs.log)?prevGs.log:Object.values(prevGs.log)):[];
 newGs.log=[...oldLog, ...newGs.log];
