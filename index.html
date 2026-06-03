@@ -243,39 +243,30 @@ body{font-family:'Noto Sans',sans-serif;background:var(--green-dark);min-height:
 .btn-hint{background:#d97706;color:#fff;}
 
 /* ── GAME LOG ── */
-.game-log{
-  background:rgba(0,0,0,0.3);
-  border-radius:12px;
-  overflow:hidden;
-  margin-top:2px;
-}
-.game-log-header{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:7px 12px;
-  background:rgba(0,0,0,0.2);
-  border-bottom:1px solid rgba(255,255,255,0.07);
-  cursor:pointer;
-  user-select:none;
-}
-.game-log-title{
-  color:rgba(255,255,255,0.5);
-  font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;
-}
-.game-log-toggle{color:rgba(255,255,255,0.35);font-size:11px;}
-.game-log-body{
-  height:90px;overflow-y:auto;
-  padding:6px 12px;
-  display:flex;flex-direction:column;gap:2px;
-}
-.log-entry{
-  font-size:11px;color:rgba(255,255,255,0.6);line-height:1.5;
-  border-bottom:1px solid rgba(255,255,255,0.04);padding-bottom:2px;
-}
-.log-entry.log-first{color:var(--gold);font-weight:700;}
-.log-entry.log-win{color:#2ecc71;font-weight:700;}
-.log-entry.log-bomb{color:#e74c3c;font-weight:700;}
-.log-entry.log-pass{color:rgba(255,255,255,0.35);font-style:italic;}
-.log-entry.log-timeout{color:#e67e22;font-style:italic;}
+.stats-panel{background:rgba(0,0,0,0.3);border-radius:12px;overflow:hidden;margin-top:2px;}
+.stats-header{display:flex;align-items:center;justify-content:space-between;padding:7px 12px;background:rgba(0,0,0,0.2);border-bottom:1px solid rgba(255,255,255,0.08);}
+.stats-title{color:rgba(255,255,255,0.5);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
+.stats-body{padding:10px 12px;display:flex;flex-direction:column;gap:8px;}
+.stats-scores{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.stats-score-box{background:rgba(0,0,0,0.3);border-radius:8px;padding:8px 10px;text-align:center;}
+.stats-score-name{color:rgba(255,255,255,0.45);font-size:10px;margin-bottom:3px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.stats-score-num{font-size:20px;font-weight:800;line-height:1;}
+.stats-score-sub{color:rgba(255,255,255,0.35);font-size:10px;margin-top:2px;}
+.stats-section{background:rgba(0,0,0,0.2);border-radius:8px;overflow:hidden;}
+.stats-section-title{padding:6px 12px;border-bottom:1px solid rgba(255,255,255,0.06);color:rgba(255,255,255,0.5);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
+.stats-first-row{padding:7px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.05);}
+.stats-first-row:last-child{border-bottom:none;}
+.stats-name-pill{font-size:10px;font-weight:800;padding:2px 8px;border-radius:10px;}
+.stats-first-reason{color:rgba(255,255,255,0.65);font-size:11px;}
+.stats-first-right{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.stats-first-count{color:rgba(255,255,255,0.4);font-size:10px;}
+.stats-first-rounds{color:rgba(255,255,255,0.25);font-size:10px;}
+.stats-bar-row{display:flex;align-items:center;gap:6px;margin-bottom:5px;}
+.stats-bar-row:last-child{margin-bottom:0;}
+.stats-bar-pct{font-size:10px;font-weight:700;min-width:28px;}
+.stats-bar-track{flex:1;background:rgba(255,255,255,0.1);border-radius:4px;height:7px;overflow:hidden;}
+.stats-bar-fill{height:100%;border-radius:4px;}
+.stats-bar-name{color:rgba(255,255,255,0.4);font-size:10px;min-width:60px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
 .game-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);display:none;flex-direction:column;align-items:center;justify-content:center;gap:0;z-index:100;overflow-y:auto;padding:16px 0;}
 .game-overlay.show{display:flex;}
@@ -579,12 +570,21 @@ body{font-family:'Noto Sans',sans-serif;background:var(--green-dark);min-height:
       </div>
     </div>
 
-    <div class="game-log" id="gameLog">
-      <div class="game-log-header" onclick="toggleGameLog()">
-        <span class="game-log-title">📋 Lịch sử ván chơi</span>
-        <span class="game-log-toggle" id="logToggleIcon">▾ ẩn</span>
+    <div class="stats-panel" id="statsPanel">
+      <div class="stats-header">
+        <span class="stats-title">📊 Thống kê phiên chơi</span>
+        <span style="color:rgba(255,255,255,0.3);font-size:10px;" id="statsTotalRounds"></span>
       </div>
-      <div class="game-log-body" id="gameLogBody"></div>
+      <div class="stats-body">
+        <div class="stats-scores" id="statsScores"></div>
+        <div class="stats-section">
+          <div class="stats-section-title">Lượt đi trước</div>
+          <div id="statsFirstList"></div>
+        </div>
+        <div class="stats-section" id="statsBarSection" style="padding:8px 12px;">
+          <div id="statsBarRows"></div>
+        </div>
+      </div>
     </div>
 
     <div class="game-chat">
@@ -693,18 +693,7 @@ window.setOppCheatDeck=function(mode){
 
 // ── GAME LOG TOGGLE ──
 let _logExpanded = true;
-window.toggleGameLog = function(){
-  _logExpanded = !_logExpanded;
-  const body = document.getElementById('gameLogBody');
-  const icon = document.getElementById('logToggleIcon');
-  if(_logExpanded){
-    body.style.display = '';
-    icon.textContent = '▾ ẩn';
-  } else {
-    body.style.display = 'none';
-    icon.textContent = '▸ hiện';
-  }
-};
+
 
 // ── FLOATING GIFTS ──
 const GiftFX = (()=>{
@@ -1373,28 +1362,83 @@ function startGameListener(){
 
 let _lastLogLen=0, _winShown=false, _prevTurnSlot=-1;
 
-function renderGameLog(logArr, firstCount){
-  const body = document.getElementById('gameLogBody');
-  if(!body) return;
-  for(let i = _lastLogLen; i < logArr.length; i++){
-    const entry = logArr[i];
-    const div = document.createElement('div');
-  if(entry.type==='first'){
-  div.className='log-entry log-first';
-  const cnt = firstCount&&firstCount[entry.player] ? ' (đi trước lần '+firstCount[entry.player]+')' : '';
-  if(i > 0){ const sep=document.createElement('div'); sep.style.cssText='border-top:1px dashed rgba(255,255,255,0.15);margin:4px 0;'; body.appendChild(sep); }
-  div.textContent = 'Ván '+(entry.round||'?')+' — '+entry.player+' '+entry.reason+cnt;
-    } else if(entry.type==='win'){
-      div.className='log-entry log-win';
-      div.textContent = '🏆 '+entry.player+' thắng ván '+entry.round+'!';
-    } else {
-      div.className='log-entry';
-      div.textContent = String(entry);
-    }
-    body.appendChild(div);
+function renderStats(gs, displays, mySlot){
+  const op = 1 - mySlot;
+  const scores = gs.scores || [0,0];
+  const totalRounds = (gs.round || 1);
+  const logArr = gs.log ? (Array.isArray(gs.log) ? gs.log : Object.values(gs.log)) : [];
+
+  document.getElementById('statsTotalRounds').textContent = totalRounds + ' ván';
+
+  const colors = ['#f5c842','#2ecc71'];
+  const bgColors = ['rgba(245,200,66,0.15)','rgba(46,204,113,0.15)'];
+  const scoresEl = document.getElementById('statsScores');
+  if(scoresEl){
+    scoresEl.innerHTML = [mySlot, op].map(slot => {
+      const name = displays[slot] || 'P'+(slot+1);
+      return `<div class="stats-score-box">
+        <div class="stats-score-name" title="${name}">${name}</div>
+        <div class="stats-score-num" style="color:${colors[slot=== mySlot?0:1]}">${scores[slot]}</div>
+        <div class="stats-score-sub">ván thắng</div>
+      </div>`;
+    }).join('');
   }
-  body.scrollTop = body.scrollHeight;
+
+  const firstEntries = logArr.filter(e => e && e.type === 'first');
+  const firstMap = {};
+  firstEntries.forEach(e => {
+    const key = e.player + '||' + e.reason;
+    if(!firstMap[key]) firstMap[key] = {player: e.player, reason: e.reason, rounds: []};
+    firstMap[key].rounds.push(e.round);
+  });
+  const firstListEl = document.getElementById('statsFirstList');
+  if(firstListEl){
+    const rows = Object.values(firstMap);
+    if(!rows.length){
+      firstListEl.innerHTML = '<div style="padding:8px 12px;color:rgba(255,255,255,0.3);font-size:11px;">Chưa có dữ liệu.</div>';
+    } else {
+      firstListEl.innerHTML = rows.map(row => {
+        const isMe = row.player === (displays[mySlot] || 'P'+(mySlot+1));
+        const pillColor = isMe ? colors[0] : colors[1];
+        const pillBg = isMe ? bgColors[0] : bgColors[1];
+        const reasonShort = row.reason.replace(/→.*$/,'').replace(/🏆|🃏/g,'').trim();
+        const roundsStr = row.rounds.map(r=>'V'+r).join(', ');
+        return `<div class="stats-first-row">
+          <div style="display:flex;align-items:center;gap:7px;min-width:0;">
+            <span class="stats-name-pill" style="color:${pillColor};background:${pillBg};flex-shrink:0;">${row.player}</span>
+            <span class="stats-first-reason">${reasonShort}</span>
+          </div>
+          <div class="stats-first-right">
+            <span class="stats-first-count">${row.rounds.length}×</span>
+            <span class="stats-first-rounds">${roundsStr}</span>
+          </div>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  const total = scores[0] + scores[1];
+  const barSection = document.getElementById('statsBarSection');
+  const barRows = document.getElementById('statsBarRows');
+  if(barSection && barRows && total > 0){
+    barSection.style.display = '';
+    barRows.innerHTML = [mySlot, op].map(slot => {
+      const name = displays[slot] || 'P'+(slot+1);
+      const pct = Math.round(scores[slot] / total * 100);
+      const col = colors[slot === mySlot ? 0 : 1];
+      return `<div class="stats-bar-row">
+        <span class="stats-bar-pct" style="color:${col}">${pct}%</span>
+        <div class="stats-bar-track"><div class="stats-bar-fill" style="width:${pct}%;background:${col};"></div></div>
+        <span class="stats-bar-name" title="${name}">${name}</span>
+      </div>`;
+    }).join('');
+  } else if(barSection){
+    barSection.style.display = 'none';
+  }
 }
+
+function renderGameLog(logArr, firstCount){}
+
 function renderGame(room){
   if(!room||!room.gameState)return;
   const gs=room.gameState;const my=App.mySlot,op=1-my;
@@ -1429,9 +1473,9 @@ function renderGame(room){
         if(combo&&combo.type==='bomb4')SFX.bomb();else SFX.opponentPlay();
       }
     }
-    renderGameLog(logArr, gs.firstCount);
     _lastLogLen=logArr.length;
   }
+  renderStats(gs, room.playerDisplays, App.mySlot);
 
   const myTurn=gs.turn===my;
   if(!gs.gameOver){
