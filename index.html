@@ -333,6 +333,10 @@ body{font-family:'Noto Sans',sans-serif;background:var(--green-dark);min-height:
   animation:timerPulse .5s infinite;
 }
 .turn-timer.hidden{visibility:hidden;}
+.ping-badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;background:rgba(0,0,0,0.35);margin-left:6px;}
+.ping-good{color:#2ecc71;}
+.ping-ok{color:#f5c842;}
+.ping-bad{color:#e74c3c;}
 @keyframes timerPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.15);}}
 
 /* ── GAME CHAT ── */
@@ -543,7 +547,8 @@ body{font-family:'Noto Sans',sans-serif;background:var(--green-dark);min-height:
         <div class="opp-label">
           <span class="turn-dot" id="oppTurnDot"></span>
           <span id="oppNameLabel">Đối thủ</span>
-          <span class="turn-timer hidden" id="oppTimer"></span>
+<span class="turn-timer hidden" id="oppTimer"></span>
+<span class="ping-badge" id="oppPing" style="display:none"></span>
         </div>
         <div class="opp-count" id="oppCount">-- lá</div>
       </div>
@@ -559,8 +564,9 @@ body{font-family:'Noto Sans',sans-serif;background:var(--green-dark);min-height:
       <div class="player-header">
         <div class="player-label">
           <span class="my-turn-dot" id="myTurnDot"></span>
-          <span id="myNameLabel">Bạn</span>
-          <span class="turn-timer hidden" id="myTimer"></span>
+         <span id="myNameLabel">Bạn</span>
+<span class="turn-timer hidden" id="myTimer"></span>
+<span class="ping-badge" id="myPing" style="display:none"></span>
         </div>
         <div class="my-count" id="myCount">-- lá</div>
       </div>
@@ -1004,7 +1010,7 @@ async function showLobby(){
 }
 
 function detachAllListeners(){
-  stopTurnTimer();stopImpatienceTimers();SFX.stopTurnReminder();
+  stopTurnTimer();stopImpatienceTimers();SFX.stopTurnReminder();stopPingSystem();
   Object.values(App.listeners).forEach(r=>{if(typeof r==='number')clearInterval(r);else dbUnlisten(r);});
   App.listeners={};
 }
@@ -1349,6 +1355,7 @@ function enterGame(room){
   document.getElementById('winOverlay').className='game-overlay';
   setTimeout(()=>{for(let i=0;i<6;i++)setTimeout(()=>SFX.cardFlip(),i*60);},200);
   startGameListener();
+startPingSystem();
 }
 
 function startGameListener(){
@@ -1862,6 +1869,90 @@ document.addEventListener('keydown',e=>{
 })();
 
 window.App = App;
+// ── PING & RECONNECT ──
+let _pingInterval = null;
+let _reconnectTimeout = null;
+let _isReconnecting = false;
+
+function startPingSystem(){
+  stopPingSystem();
+  if(!App.currentRoom || !App.currentUser) return;
+  _pingInterval = setInterval(async ()=>{
+    if(!App.currentRoom || !App.currentUser) return;
+    const t0 = Date.now();
+    try{
+      await dbUpdate('rooms/'+App.currentRoom, {
+        [`pings/${App.currentUser.username}`]: {ts: t0, slot: App.mySlot}
+      });
+      const ping = Date.now() - t0;
+      renderMyPing(ping);
+      _isReconnecting = false;
+    } catch(e){
+      renderMyPing(-1);
+      if(!_isReconnecting) tryReconnect();
+    }
+  }, 3000);
+
+  // đọc ping của đối thủ
+  App.listeners.pings = dbListen('rooms/'+App.currentRoom+'/pings', (pings)=>{
+    if(!pings) return;
+    Object.entries(pings).forEach(([uname, data])=>{
+      if(uname !== App.currentUser.username){
+        const age = Date.now() - (data.ts||0);
+        renderOppPing(age < 6000 ? age : -1);
+      }
+    });
+  });
+}
+
+function stopPingSystem(){
+  if(_pingInterval){ clearInterval(_pingInterval); _pingInterval=null; }
+  if(_reconnectTimeout){ clearTimeout(_reconnectTimeout); _reconnectTimeout=null; }
+  if(App.listeners.pings){ dbUnlisten(App.listeners.pings); delete App.listeners.pings; }
+}
+
+function renderMyPing(ms){
+  const el = document.getElementById('myPing');
+  if(!el) return;
+  if(ms < 0){ el.textContent='📶 mất mạng'; el.className='ping-badge ping-bad'; el.style.display=''; return; }
+  const cls = ms < 100 ? 'ping-good' : ms < 250 ? 'ping-ok' : 'ping-bad';
+  el.textContent = '📶 '+ms+'ms';
+  el.className = 'ping-badge ' + cls;
+  el.style.display = '';
+}
+
+function renderOppPing(ms){
+  const el = document.getElementById('oppPing');
+  if(!el) return;
+  if(ms < 0){ el.textContent='📶 mất mạng'; el.className='ping-badge ping-bad'; el.style.display=''; return; }
+  const cls = ms < 100 ? 'ping-good' : ms < 250 ? 'ping-ok' : 'ping-bad';
+  el.textContent = '📶 '+ms+'ms';
+  el.className = 'ping-badge ' + cls;
+  el.style.display = '';
+}
+
+async function tryReconnect(){
+  if(_isReconnecting) return;
+  _isReconnecting = true;
+  showTurnToast('🔄 Đang kết nối lại...');
+  _reconnectTimeout = setTimeout(async ()=>{
+    if(!App.currentRoom || !App.currentUser){ _isReconnecting=false; return; }
+    try{
+      const room = await dbGet('rooms/'+App.currentRoom);
+      if(!room){ _isReconnecting=false; showLobby(); return; }
+      showTurnToast('✅ Đã kết nối lại!');
+      _isReconnecting = false;
+      // restart listener nếu cần
+      if(!App.listeners.game){
+        startGameListener();
+        startPingSystem();
+      }
+    } catch(e){
+      _isReconnecting = false;
+      tryReconnect(); // thử lại
+    }
+  }, 2000);
+}
 </script>
 </body>
 </html>
