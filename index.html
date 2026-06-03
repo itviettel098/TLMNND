@@ -1376,12 +1376,8 @@ function renderGameLog(logArr){
   for(let i = rendered; i < logArr.length; i++){
     const entry = logArr[i];
     let cls = 'log-entry';
-    if(body.children.length === 0) cls += ' log-first';
-    else if(entry.includes('💣')||entry.includes('Tứ Quý')) cls += ' log-bomb';
-    else if(entry.includes('THẮNG')||entry.includes('thắng')) cls += ' log-win';
-    else if(entry.includes('bỏ lượt')) cls += ' log-pass';
-    
-    else if(entry.includes('VÁN')&&entry.includes('BẮT ĐẦU')) cls += ' log-first';
+    if(entry.includes('VÁN')&&entry.includes('BẮT ĐẦU')) cls += ' log-first';
+    else if(entry.includes('THẮNG')) cls += ' log-win';
     const div = document.createElement('div');
     div.className = cls;
     div.textContent = entry;
@@ -1539,8 +1535,7 @@ window.doPlay=async function(){
   newGs.hands[App.mySlot]=newGs.hands[App.mySlot].filter((_,i)=>!sel.includes(i));
   newGs.lastPlay=played;newGs.lastPlayer=App.mySlot;newGs.passCount=0;
   const logArr=Array.isArray(newGs.log)?newGs.log:Object.values(newGs.log||{});
-  const comboLabel = combo.type==='bomb4'?'💣 TỨ QUÝ':'';
-  logArr.push((room.playerDisplays[App.mySlot]||'Bạn')+' đánh: '+cardsToStr(played)+(comboLabel?' '+comboLabel:''));
+  
   newGs.log=logArr;
   if(newGs.hands[App.mySlot].length===0){
     newGs.gameOver=true;newGs.winner=App.mySlot;
