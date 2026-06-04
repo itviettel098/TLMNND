@@ -1658,39 +1658,81 @@ window.sortHand=async function(){
   await dbUpdate('rooms/'+App.currentRoom,{gameState:newGs});
 };
 
-window.doHint=async function(){
-  SFX.click();const room=await dbGet('rooms/'+App.currentRoom);if(!room||!room.gameState)return;
-  const gs=room.gameState;if(gs.turn!==App.mySlot)return;
-  const hand=gs.hands[App.mySlot];
-  let hint=[];
-  if(!gs.lastPlay||!gs.lastPlay.length){
-    hint=[0];
-  } else {
-    const lc=getCombo(gs.lastPlay);
-    if(lc){
-      if(lc.type==='single'){
-        for(let i=0;i<hand.length;i++){
-          const c=getCombo([hand[i]]);
-          if(c&&canBeat(c,gs.lastPlay)){hint=[i];break;}
-        }
-      } else if(lc.type==='pair'){
-        const rmap={};
-        hand.forEach((c,i)=>{if(!rmap[c.r])rmap[c.r]=[];rmap[c.r].push(i);});
-        for(const r of RANK_ORDER){
-          if(rmap[r]&&rmap[r].length>=2){
-            const t=getCombo(rmap[r].slice(0,2).map(i=>hand[i]));
-            if(t&&canBeat(t,gs.lastPlay)){hint=rmap[r].slice(0,2);break;}
-          }
-        }
+function findBestCounter(hand,lastPlay){
+  if(!lastPlay||!lastPlay.length) return [0];
+  const lc=getCombo(lastPlay);
+  if(!lc) return [];
+  const rankMap={};
+  hand.forEach((c,i)=>{if(!rankMap[c.r])rankMap[c.r]=[];rankMap[c.r].push(i);});
+  if(lc.type!=='bomb4'){
+    for(const r of RANK_ORDER){
+      if(rankMap[r]&&rankMap[r].length===4){
+        const idxs=rankMap[r];
+        if(canBeat(getCombo(idxs.map(i=>hand[i])),lastPlay)) return idxs;
       }
     }
   }
+  if(lc.type==='single'){
+    for(let i=0;i<hand.length;i++){const c=getCombo([hand[i]]);if(c&&canBeat(c,lastPlay))return [i];}
+  }
+  if(lc.type==='pair'){
+    for(const r of RANK_ORDER){if(rankMap[r]&&rankMap[r].length>=2){const idxs=rankMap[r].slice(0,2);if(canBeat(getCombo(idxs.map(i=>hand[i])),lastPlay))return idxs;}}
+  }
+  if(lc.type==='triple'){
+    for(const r of RANK_ORDER){if(rankMap[r]&&rankMap[r].length>=3){const idxs=rankMap[r].slice(0,3);if(canBeat(getCombo(idxs.map(i=>hand[i])),lastPlay))return idxs;}}
+  }
+  if(lc.type==='bomb4'){
+    for(const r of RANK_ORDER){if(rankMap[r]&&rankMap[r].length===4){const idxs=rankMap[r];if(canBeat(getCombo(idxs.map(i=>hand[i])),lastPlay))return idxs;}}
+  }
+  if(lc.type==='seq') return findSeq(hand,lc.len,lastPlay);
+  if(lc.type==='dseq') return findDSeq(hand,lc.pairs,lastPlay);
+  return [];
+}
+function findSeq(hand,len,lastPlay){
+  const byRank={};
+  hand.forEach((c,i)=>{if(c.r!=='2'){if(!byRank[c.r])byRank[c.r]=[];byRank[c.r].push(i);}});
+  const ranks=RANK_ORDER.filter(r=>r!=='2'&&byRank[r]);
+  for(let s=0;s<=ranks.length-len;s++){
+    const seg=ranks.slice(s,s+len);
+    let ok=true;
+    for(let k=1;k<seg.length;k++) if(RANK_ORDER.indexOf(seg[k])-RANK_ORDER.indexOf(seg[k-1])!==1){ok=false;break;}
+    if(!ok) continue;
+    const idxs=seg.map(r=>byRank[r][0]);
+    const c=getCombo(idxs.map(i=>hand[i]));
+    if(c&&canBeat(c,lastPlay)) return idxs;
+  }
+  return [];
+}
+function findDSeq(hand,pairs,lastPlay){
+  const byRank={};
+  hand.forEach((c,i)=>{if(c.r!=='2'){if(!byRank[c.r])byRank[c.r]=[];byRank[c.r].push(i);}});
+  const pairRanks=RANK_ORDER.filter(r=>r!=='2'&&byRank[r]&&byRank[r].length>=2);
+  for(let s=0;s<=pairRanks.length-pairs;s++){
+    const seg=pairRanks.slice(s,s+pairs);
+    let ok=true;
+    for(let k=1;k<seg.length;k++) if(RANK_ORDER.indexOf(seg[k])-RANK_ORDER.indexOf(seg[k-1])!==1){ok=false;break;}
+    if(!ok) continue;
+    const idxs=seg.flatMap(r=>byRank[r].slice(0,2));
+    const c=getCombo(idxs.map(i=>hand[i]));
+    if(c&&canBeat(c,lastPlay)) return idxs;
+  }
+  return [];
+}
+
+window.doHint=async function(){
+  SFX.click();
+  const room=await dbGet('rooms/'+App.currentRoom);if(!room||!room.gameState)return;
+  const gs=room.gameState;if(gs.turn!==App.mySlot)return;
+  const hint=findBestCounter(gs.hands[App.mySlot],gs.lastPlay);
   App.selected=new Set(hint);
-  setGameStatus(hint.length?'Gợi ý: chọn '+hint.length+' lá.':'Không có bài để đánh — hãy bỏ lượt!');
+  setGameStatus(hint.length?'Gợi ý: chọn '+hint.length+' lá — nhấn Đánh bài!':'Không có bài để đánh — hãy bỏ lượt!');
   document.getElementById('myHand').querySelectorAll('.card').forEach((el,idx)=>{
     el.className=el.className.replace(' sel','')+(App.selected.has(idx)?' sel':'');
+    el.style.transform=App.selected.has(idx)?'translateY(-16px)':'';
   });
 };
+
+
 
 function setGameStatus(msg){document.getElementById('gameStatus').textContent=msg;}
 
