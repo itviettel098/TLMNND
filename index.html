@@ -1413,8 +1413,7 @@ function startGameListener(){
   App.listeners._heartbeat=setInterval(()=>{if(App.currentUser)dbUpdate('users/'+App.currentUser.username,{online:Date.now()}).catch(()=>{});},10000);
 }
 
-let _lastLogLen=0, _winShown=false, _prevTurnSlot=-1;
-
+let _lastLogLen=0, _winShown=false, _prevTurnSlot=-1, _autoHintTurnSlot=-1;
 function renderStats(gs, displays, mySlot){
   const op = 1 - mySlot;
   const scores = gs.scores || [0,0];
@@ -1577,11 +1576,11 @@ function renderGame(room){
   }).join('');
 
   const myCards=gs.hands[my]||[];
-  const prevTurnSlotSnapshot = _prevTurnSlot;
   document.getElementById('myHand').innerHTML=myCards.map((c,i)=>cardHTML(c,i,myTurn&&!gs.gameOver)).join('');
 
-  // Auto-hint khi vừa đến lượt mình (chưa chọn gì)
-  if(myTurn && !gs.gameOver && App.selected.size === 0 && gs.turn !== prevTurnSlotSnapshot){
+  // Auto-hint tự động khi vừa đến lượt mình
+  if(myTurn && !gs.gameOver && App.selected.size === 0 && _autoHintTurnSlot !== gs.turn){
+    _autoHintTurnSlot = gs.turn;
     setTimeout(()=>applyAutoHint(myCards, gs.lastPlay), 180);
   }
 
@@ -1946,7 +1945,8 @@ window.doNewRound=async function(){
   newGs.firstCount=Object.assign({},oldFirstCount);
   const fp=room.playerDisplays[newGs.turn]||('P'+(newGs.turn+1));
   newGs.firstCount[fp]=(newGs.firstCount[fp]||0)+1;
-  SFX.resetLastTurn();
+ SFX.resetLastTurn();
+  _autoHintTurnSlot = -1;
   await dbUpdate('rooms/'+App.currentRoom,{gameState:newGs,status:'playing',round:newRound});
   App.selected=new Set();
   setTimeout(()=>{for(let i=0;i<6;i++)setTimeout(()=>SFX.cardFlip(),i*60);},200);
