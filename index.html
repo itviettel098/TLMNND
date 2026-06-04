@@ -1647,7 +1647,7 @@ if(myTurn && !gs.gameOver && App.selected.size === 0 && _autoHintTurnSlot !== _t
     stopTurnTimer();
   }
 }
-
+}
 window.toggleCard=function(i){
   if(App.selected.has(i)){App.selected.delete(i);SFX.cardDeselect();}
   else{App.selected.add(i);SFX.cardSelect();}
