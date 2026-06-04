@@ -1658,80 +1658,196 @@ window.sortHand=async function(){
   await dbUpdate('rooms/'+App.currentRoom,{gameState:newGs});
 };
 
-function findBestCounter(hand,lastPlay){
-  if(!lastPlay||!lastPlay.length) return [0];
-  const lc=getCombo(lastPlay);
-  if(!lc) return [];
-  const rankMap={};
-  hand.forEach((c,i)=>{if(!rankMap[c.r])rankMap[c.r]=[];rankMap[c.r].push(i);});
-  if(lc.type!=='bomb4'){
-    for(const r of RANK_ORDER){
-      if(rankMap[r]&&rankMap[r].length===4){
-        const idxs=rankMap[r];
-        if(canBeat(getCombo(idxs.map(i=>hand[i])),lastPlay)) return idxs;
+
+// ═══════════════════════════════════════════════════════
+// HINT — TÌM BÀI GỢI Ý THÔNG MINH
+// Ưu tiên combo nhỏ nhất thắng được, bom 4 cây chỉ dùng khi không còn cách nào
+// ═══════════════════════════════════════════════════════
+
+function findBestCounter(hand, lastPlay) {
+  if (!lastPlay || !lastPlay.length) return [0];
+  const lc = getCombo(lastPlay);
+  if (!lc) return [];
+
+  // ── Tập hợp tất cả bom 4 cây trong tay ──
+  function getAllBombs() {
+    const rc = {};
+    hand.forEach((c, i) => { if (!rc[c.r]) rc[c.r] = []; rc[c.r].push(i); });
+    const bombs = [];
+    for (const r of RANK_ORDER) {
+      if (rc[r] && rc[r].length === 4) {
+        const idxs = rc[r];
+        const c = getCombo(idxs.map(i => hand[i]));
+        if (c && canBeat(c, lastPlay)) bombs.push(idxs);
       }
     }
+    return bombs;
   }
-  if(lc.type==='single'){
-    for(let i=0;i<hand.length;i++){const c=getCombo([hand[i]]);if(c&&canBeat(c,lastPlay))return [i];}
+
+  // ── Nếu đối thủ đánh bom → phải dùng bom mạnh hơn ──
+  if (lc.type === 'bomb4') {
+    const bombs = getAllBombs();
+    if (bombs.length) return bombs[0]; // bom nhỏ nhất thắng được
+    return [];
   }
-  if(lc.type==='pair'){
-    for(const r of RANK_ORDER){if(rankMap[r]&&rankMap[r].length>=2){const idxs=rankMap[r].slice(0,2);if(canBeat(getCombo(idxs.map(i=>hand[i])),lastPlay))return idxs;}}
+
+  // ── Tìm tất cả combo cùng loại, nhỏ nhất thắng được ──
+  let best = null;
+
+  if (lc.type === 'single') best = findBestSingle(hand, lastPlay);
+  else if (lc.type === 'pair') best = findBestPair(hand, lastPlay);
+  else if (lc.type === 'triple') best = findBestTriple(hand, lastPlay);
+  else if (lc.type === 'seq') best = findSeq(hand, lc.len, lastPlay);
+  else if (lc.type === 'dseq') best = findDSeq(hand, lc.pairs, lastPlay);
+
+  if (best && best.length) return best;
+
+  // ── Kiểm tra đánh đôi thông / tứ liên đôi chặn Heo/2 ──
+  if (lc.type === 'single' && lastPlay[0].r === '2') {
+    // 3 đôi thông chặn đơn 2
+    const ds3 = findDSeq(hand, 3, lastPlay);
+    if (ds3.length) return ds3;
   }
-  if(lc.type==='triple'){
-    for(const r of RANK_ORDER){if(rankMap[r]&&rankMap[r].length>=3){const idxs=rankMap[r].slice(0,3);if(canBeat(getCombo(idxs.map(i=>hand[i])),lastPlay))return idxs;}}
+  if (lc.type === 'pair' && lastPlay[0].r === '2') {
+    // 4 đôi thông chặn đôi 2
+    const ds4 = findDSeq(hand, 4, lastPlay);
+    if (ds4.length) return ds4;
   }
-  if(lc.type==='bomb4'){
-    for(const r of RANK_ORDER){if(rankMap[r]&&rankMap[r].length===4){const idxs=rankMap[r];if(canBeat(getCombo(idxs.map(i=>hand[i])),lastPlay))return idxs;}}
-  }
-  if(lc.type==='seq') return findSeq(hand,lc.len,lastPlay);
-  if(lc.type==='dseq') return findDSeq(hand,lc.pairs,lastPlay);
-  return [];
-}
-function findSeq(hand,len,lastPlay){
-  const byRank={};
-  hand.forEach((c,i)=>{if(c.r!=='2'){if(!byRank[c.r])byRank[c.r]=[];byRank[c.r].push(i);}});
-  const ranks=RANK_ORDER.filter(r=>r!=='2'&&byRank[r]);
-  for(let s=0;s<=ranks.length-len;s++){
-    const seg=ranks.slice(s,s+len);
-    let ok=true;
-    for(let k=1;k<seg.length;k++) if(RANK_ORDER.indexOf(seg[k])-RANK_ORDER.indexOf(seg[k-1])!==1){ok=false;break;}
-    if(!ok) continue;
-    const idxs=seg.map(r=>byRank[r][0]);
-    const c=getCombo(idxs.map(i=>hand[i]));
-    if(c&&canBeat(c,lastPlay)) return idxs;
-  }
-  return [];
-}
-function findDSeq(hand,pairs,lastPlay){
-  const byRank={};
-  hand.forEach((c,i)=>{if(c.r!=='2'){if(!byRank[c.r])byRank[c.r]=[];byRank[c.r].push(i);}});
-  const pairRanks=RANK_ORDER.filter(r=>r!=='2'&&byRank[r]&&byRank[r].length>=2);
-  for(let s=0;s<=pairRanks.length-pairs;s++){
-    const seg=pairRanks.slice(s,s+pairs);
-    let ok=true;
-    for(let k=1;k<seg.length;k++) if(RANK_ORDER.indexOf(seg[k])-RANK_ORDER.indexOf(seg[k-1])!==1){ok=false;break;}
-    if(!ok) continue;
-    const idxs=seg.flatMap(r=>byRank[r].slice(0,2));
-    const c=getCombo(idxs.map(i=>hand[i]));
-    if(c&&canBeat(c,lastPlay)) return idxs;
-  }
+
+  // ── Bom 4 cây: phương án cuối cùng ──
+  const bombs = getAllBombs();
+  if (bombs.length) return bombs[0];
+
   return [];
 }
 
-window.doHint=async function(){
+// Tìm đơn nhỏ nhất thắng được
+function findBestSingle(hand, lastPlay) {
+  const candidates = [];
+  hand.forEach((c, i) => {
+    const combo = getCombo([c]);
+    if (combo && canBeat(combo, lastPlay)) candidates.push({ idxs: [i], val: combo.val });
+  });
+  if (!candidates.length) return [];
+  candidates.sort((a, b) => a.val - b.val);
+  return candidates[0].idxs;
+}
+
+// Tìm đôi nhỏ nhất thắng được
+function findBestPair(hand, lastPlay) {
+  const rc = {};
+  hand.forEach((c, i) => { if (!rc[c.r]) rc[c.r] = []; rc[c.r].push(i); });
+  const candidates = [];
+  for (const r of RANK_ORDER) {
+    if (rc[r] && rc[r].length >= 2) {
+      const idxs = rc[r].slice(0, 2);
+      const combo = getCombo(idxs.map(i => hand[i]));
+      if (combo && canBeat(combo, lastPlay)) candidates.push({ idxs, val: combo.val });
+    }
+  }
+  if (!candidates.length) return [];
+  candidates.sort((a, b) => a.val - b.val);
+  return candidates[0].idxs;
+}
+
+// Tìm bộ 3 nhỏ nhất thắng được
+function findBestTriple(hand, lastPlay) {
+  const rc = {};
+  hand.forEach((c, i) => { if (!rc[c.r]) rc[c.r] = []; rc[c.r].push(i); });
+  const candidates = [];
+  for (const r of RANK_ORDER) {
+    if (rc[r] && rc[r].length >= 3) {
+      const idxs = rc[r].slice(0, 3);
+      const combo = getCombo(idxs.map(i => hand[i]));
+      if (combo && canBeat(combo, lastPlay)) candidates.push({ idxs, val: combo.val });
+    }
+  }
+  if (!candidates.length) return [];
+  candidates.sort((a, b) => a.val - b.val);
+  return candidates[0].idxs;
+}
+
+// Tìm sảnh độ dài `len` nhỏ nhất thắng được
+function findSeq(hand, len, lastPlay) {
+  const byRank = {};
+  hand.forEach((c, i) => {
+    if (c.r !== '2') { if (!byRank[c.r]) byRank[c.r] = []; byRank[c.r].push(i); }
+  });
+  const validRanks = RANK_ORDER.filter(r => r !== '2' && byRank[r]);
+  const candidates = [];
+  for (let s = 0; s <= validRanks.length - len; s++) {
+    const seg = validRanks.slice(s, s + len);
+    let ok = true;
+    for (let k = 1; k < seg.length; k++) {
+      if (RANK_ORDER.indexOf(seg[k]) - RANK_ORDER.indexOf(seg[k-1]) !== 1) { ok = false; break; }
+    }
+    if (!ok) continue;
+    // Chọn lá nhỏ nhất trong mỗi rank (cùng rank → lấy lá nhỏ nhất theo suit)
+    const idxs = seg.map(r => byRank[r].reduce((a, b) => cardValue(hand[a]) < cardValue(hand[b]) ? a : b));
+    const combo = getCombo(idxs.map(i => hand[i]));
+    if (combo && canBeat(combo, lastPlay)) candidates.push({ idxs, val: combo.val });
+  }
+  if (!candidates.length) return [];
+  candidates.sort((a, b) => a.val - b.val);
+  return candidates[0].idxs;
+}
+
+// Tìm đôi thông `pairs` đôi nhỏ nhất thắng được
+function findDSeq(hand, pairs, lastPlay) {
+  const byRank = {};
+  hand.forEach((c, i) => {
+    if (c.r !== '2') { if (!byRank[c.r]) byRank[c.r] = []; byRank[c.r].push(i); }
+  });
+  const pairRanks = RANK_ORDER.filter(r => r !== '2' && byRank[r] && byRank[r].length >= 2);
+  const candidates = [];
+  for (let s = 0; s <= pairRanks.length - pairs; s++) {
+    const seg = pairRanks.slice(s, s + pairs);
+    let ok = true;
+    for (let k = 1; k < seg.length; k++) {
+      if (RANK_ORDER.indexOf(seg[k]) - RANK_ORDER.indexOf(seg[k-1]) !== 1) { ok = false; break; }
+    }
+    if (!ok) continue;
+    const idxs = seg.flatMap(r => byRank[r].slice(0, 2));
+    const combo = getCombo(idxs.map(i => hand[i]));
+    if (combo && canBeat(combo, lastPlay)) candidates.push({ idxs, val: combo.val });
+  }
+  if (!candidates.length) return [];
+  candidates.sort((a, b) => a.val - b.val);
+  return candidates[0].idxs;
+}
+
+window.doHint = async function() {
   SFX.click();
-  const room=await dbGet('rooms/'+App.currentRoom);if(!room||!room.gameState)return;
-  const gs=room.gameState;if(gs.turn!==App.mySlot)return;
-  const hint=findBestCounter(gs.hands[App.mySlot],gs.lastPlay);
-  App.selected=new Set(hint);
-  setGameStatus(hint.length?'Gợi ý: chọn '+hint.length+' lá — nhấn Đánh bài!':'Không có bài để đánh — hãy bỏ lượt!');
-  document.getElementById('myHand').querySelectorAll('.card').forEach((el,idx)=>{
-    el.className=el.className.replace(' sel','')+(App.selected.has(idx)?' sel':'');
-    el.style.transform=App.selected.has(idx)?'translateY(-16px)':'';
+  const room = await dbGet('rooms/' + App.currentRoom);
+  if (!room || !room.gameState) return;
+  const gs = room.gameState;
+  if (gs.turn !== App.mySlot) return;
+
+  const hint = findBestCounter(gs.hands[App.mySlot], gs.lastPlay);
+  App.selected = new Set(hint);
+
+  let msg;
+  if (!hint.length) {
+    msg = 'Không có bài để đánh — hãy bỏ lượt!';
+  } else {
+    const hintCards = hint.map(i => gs.hands[App.mySlot][i]);
+    const combo = getCombo(hintCards);
+    const typeNames = {
+      single: 'đơn', pair: 'đôi', triple: 'bộ 3',
+      seq: 'sảnh ' + (combo && combo.len ? combo.len + ' lá' : ''),
+      dseq: (combo && combo.pairs ? combo.pairs : '') + ' đôi thông',
+      bomb4: '💣 BOM 4 CÂY'
+    };
+    const typeName = combo ? (typeNames[combo.type] || combo.type) : '';
+    msg = `Gợi ý: ${typeName} — nhấn Đánh bài để xác nhận!`;
+  }
+
+  setGameStatus(msg);
+  document.getElementById('myHand').querySelectorAll('.card').forEach((el, idx) => {
+    el.className = el.className.replace(' sel', '') + (App.selected.has(idx) ? ' sel' : '');
+    el.style.transform = App.selected.has(idx) ? 'translateY(-16px)' : '';
   });
 };
-
 
 
 function setGameStatus(msg){document.getElementById('gameStatus').textContent=msg;}
