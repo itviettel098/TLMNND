@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -243,50 +242,6 @@ body{font-family:'Noto Sans',sans-serif;background:var(--green-dark);min-height:
 .btn-sort{background:#2563eb;color:#fff;}
 .btn-hint{background:#d97706;color:#fff;}
 
-/* ── AUTO HINT GLOW ── */
-.card.auto-hint {
-  transform: translateY(-16px) !important;
-  z-index: 98;
-  box-shadow: 0 0 0 2.5px #f5c842, 0 4px 18px rgba(245,200,66,0.7) !important;
-  border-color: #f5c842 !important;
-  border-width: 2px !important;
-  animation: hintPulse 1.1s ease-in-out infinite;
-}
-@keyframes hintPulse {
-  0%,100% { box-shadow: 0 0 0 2.5px #f5c842, 0 4px 18px rgba(245,200,66,0.7); }
-  50%      { box-shadow: 0 0 0 4px #f5c842, 0 6px 28px rgba(245,200,66,1.0); }
-}
-.card.sel.auto-hint {
-  animation: none;
-  box-shadow: 0 0 0 3px #f5c842, 0 4px 18px rgba(245,200,66,0.85) !important;
-}
-
-/* ── TABLE PLAYED — opponent just played animation ── */
-@keyframes oppCardDrop {
-  0%   { opacity:0; transform: translateY(-18px) scale(1.15); }
-  60%  { transform: translateY(3px) scale(1.03); }
-  100% { opacity:1; transform: translateY(0) scale(1); }
-}
-.table-played.new-play .card {
-  animation: oppCardDrop 0.38s cubic-bezier(.34,1.4,.64,1) both;
-}
-.table-played.new-play .card:nth-child(2) { animation-delay:.05s; }
-.table-played.new-play .card:nth-child(3) { animation-delay:.09s; }
-.table-played.new-play .card:nth-child(4) { animation-delay:.12s; }
-.table-played.new-play .card:nth-child(5) { animation-delay:.15s; }
-.table-played.new-play .card.red  { box-shadow: 0 0 0 2px #e74c3c, 0 4px 14px rgba(231,76,60,0.55); }
-.table-played.new-play .card.black{ box-shadow: 0 0 0 2px #f5c842, 0 4px 14px rgba(245,200,66,0.45); }
-
-/* ── PLAY BUTTON PULSE khi có bài được chọn ── */
-.btn-play.has-selection {
-  animation: playBtnPulse 1s ease-in-out infinite;
-  background: #14b843 !important;
-}
-@keyframes playBtnPulse {
-  0%,100% { box-shadow: 0 0 0 0 rgba(22,163,74,0.5); }
-  50%     { box-shadow: 0 0 0 7px rgba(22,163,74,0); }
-}
-
 /* ── GAME LOG ── */
 .stats-panel{background:rgba(0,0,0,0.3);border-radius:12px;overflow:hidden;margin-top:2px;}
 .stats-header{display:flex;align-items:center;justify-content:space-between;padding:7px 12px;background:rgba(0,0,0,0.2);border-bottom:1px solid rgba(255,255,255,0.08);}
@@ -389,6 +344,9 @@ body{font-family:'Noto Sans',sans-serif;background:var(--green-dark);min-height:
 .btn-emoji:hover{background:rgba(255,255,255,0.15);}
 @keyframes revealCard{from{opacity:0;transform:translateY(-8px) rotateY(90deg);}to{opacity:1;transform:translateY(0) rotateY(0deg);}}
 .opp-hand-row.revealed .card{animation:revealCard .3s ease forwards;}
+
+/* ── FLOATING GIFTS CANVAS ── */
+#giftCanvas{position:fixed;inset:0;pointer-events:none;z-index:9999;overflow:hidden;}
 </style>
 </head>
 <body>
@@ -580,8 +538,8 @@ body{font-family:'Noto Sans',sans-serif;background:var(--green-dark);min-height:
         <div class="opp-label">
           <span class="turn-dot" id="oppTurnDot"></span>
           <span id="oppNameLabel">Đối thủ</span>
-          <span class="turn-timer hidden" id="oppTimer"></span>
-          <span class="ping-badge" id="oppPing" style="display:none"></span>
+<span class="turn-timer hidden" id="oppTimer"></span>
+<span class="ping-badge" id="oppPing" style="display:none"></span>
         </div>
         <div class="opp-count" id="oppCount">-- lá</div>
       </div>
@@ -597,9 +555,9 @@ body{font-family:'Noto Sans',sans-serif;background:var(--green-dark);min-height:
       <div class="player-header">
         <div class="player-label">
           <span class="my-turn-dot" id="myTurnDot"></span>
-          <span id="myNameLabel">Bạn</span>
-          <span class="turn-timer hidden" id="myTimer"></span>
-          <span class="ping-badge" id="myPing" style="display:none"></span>
+         <span id="myNameLabel">Bạn</span>
+<span class="turn-timer hidden" id="myTimer"></span>
+<span class="ping-badge" id="myPing" style="display:none"></span>
         </div>
         <div class="my-count" id="myCount">-- lá</div>
       </div>
@@ -748,6 +706,7 @@ function _saveCheatMode(){
 
 // ── GAME LOG TOGGLE ──
 let _logExpanded = true;
+
 
 // ── FLOATING GIFTS ──
 const GiftFX = (()=>{
@@ -1203,7 +1162,7 @@ window.doStartGame=async function(){
   if(room.adminCheatMode) cheatDeckMode = room.adminCheatMode;
   const newRound = room.round || 1;
   const lastWinner = null;
-  const gs=createGameState(room.players,room.playerDisplays,newRound,lastWinner);
+const gs=createGameState(room.players,room.playerDisplays,newRound,lastWinner);
   const fp=room.playerDisplays[gs.turn]||('P'+(gs.turn+1));
   if(!gs.firstCount) gs.firstCount={};
   gs.firstCount[fp]=(gs.firstCount[fp]||0)+1;
@@ -1349,6 +1308,11 @@ function canBeat(combo, lastPlay){
   return combo.val > lc.val;
 }
 
+function cardsToStr(cards){
+  const sym={s:'♠',c:'♣',d:'♦',h:'♥'};
+  return cards.map(c=>c.r+sym[c.s]).join(' ');
+}
+
 function createGameState(players, displays, round, firstPlayer){
   const adminSlot = players.indexOf(ADMIN_USER);
   let deck;
@@ -1401,7 +1365,7 @@ function enterGame(room){
   document.getElementById('winOverlay').className='game-overlay';
   setTimeout(()=>{for(let i=0;i<6;i++)setTimeout(()=>SFX.cardFlip(),i*60);},200);
   startGameListener();
-  startPingSystem();
+startPingSystem();
 }
 
 function startGameListener(){
@@ -1413,7 +1377,8 @@ function startGameListener(){
   App.listeners._heartbeat=setInterval(()=>{if(App.currentUser)dbUpdate('users/'+App.currentUser.username,{online:Date.now()}).catch(()=>{});},10000);
 }
 
-let _lastLogLen=0, _winShown=false, _prevTurnSlot=-1, _autoHintTurnSlot=-1;
+let _lastLogLen=0, _winShown=false, _prevTurnSlot=-1;
+
 function renderStats(gs, displays, mySlot){
   const op = 1 - mySlot;
   const scores = gs.scores || [0,0];
@@ -1489,23 +1454,7 @@ function renderStats(gs, displays, mySlot){
   }
 }
 
-// ── AUTO HINT — module-level variables (FIX: moved out of _applyCardSelUI) ──
-let _autoHintApplied = false;
-
-// ── AUTO HINT — module-level function (FIX: moved out of _applyCardSelUI) ──
-function applyAutoHint(hand, lastPlay){
-  if(!hand || !hand.length) return;
-  const hint = findBestCounter(hand, lastPlay);
-  App.selected = new Set(hint);
-  _autoHintApplied = true;
-  _applyCardSelUI();
-  // Add glow class for auto-hint cards
-  document.getElementById('myHand').querySelectorAll('.card').forEach((el,idx)=>{
-    if(App.selected.has(idx)) el.classList.add('auto-hint');
-  });
-  const btnPlay = document.getElementById('btnPlay');
-  if(btnPlay && hint.length) btnPlay.classList.add('has-selection');
-}
+function renderGameLog(logArr, firstCount){}
 
 function renderGame(room){
   if(!room||!room.gameState)return;
@@ -1529,16 +1478,7 @@ function renderGame(room){
   document.getElementById('oppCount').textContent=oppCards.length+(gs.gameOver&&oppCards.length?' lá 👁':' lá');
 
   const lp=gs.lastPlay||[];
-  const tableEl = document.getElementById('tablePlayed');
-  const newHtml = lp.length?lp.map(c=>cardHTML(c,-1,false)).join(''):'<span style="color:rgba(255,255,255,.3);font-size:12px;">Chưa có bài</span>';
-  tableEl.innerHTML = newHtml;
-  if(lp.length && gs.lastPlayer === op){
-    tableEl.classList.remove('new-play');
-    void tableEl.offsetWidth; // force reflow for re-triggering animation
-    tableEl.classList.add('new-play');
-    setTimeout(()=>tableEl.classList.remove('new-play'), 800);
-  }
-
+  document.getElementById('tablePlayed').innerHTML=lp.length?lp.map(c=>cardHTML(c,-1,false)).join(''):'<span style="color:rgba(255,255,255,.3);font-size:12px;">Chưa có bài</span>';
   const lpl=document.getElementById('lastPlayerLabel');
   if(gs.lastPlayer>=0){const lpn=gs.lastPlayer===my?'Bạn':(room.playerDisplays[op]||'Đối thủ');lpl.textContent=lpn+' vừa đánh';}else lpl.textContent='';
 
@@ -1577,13 +1517,6 @@ function renderGame(room){
 
   const myCards=gs.hands[my]||[];
   document.getElementById('myHand').innerHTML=myCards.map((c,i)=>cardHTML(c,i,myTurn&&!gs.gameOver)).join('');
-
-  const _thisTurnKey = gs.turn + '_' + (gs.turnStartAt || 0);
-if(myTurn && !gs.gameOver && App.selected.size === 0 && _autoHintTurnSlot !== _thisTurnKey){
-  _autoHintTurnSlot = _thisTurnKey;
-
-  // Nếu đã có selection thì re-apply UI
-  if(App.selected.size > 0) _applyCardSelUI();
   document.getElementById('myCount').textContent=myCards.length+' lá';
   document.getElementById('btnPlay').disabled=!myTurn||gs.gameOver;
   document.getElementById('btnPass').disabled=!myTurn||gs.gameOver||!lp.length;
@@ -1647,31 +1580,15 @@ if(myTurn && !gs.gameOver && App.selected.size === 0 && _autoHintTurnSlot !== _t
     stopTurnTimer();
   }
 }
-}
+
 window.toggleCard=function(i){
   if(App.selected.has(i)){App.selected.delete(i);SFX.cardDeselect();}
   else{App.selected.add(i);SFX.cardSelect();}
-  _applyCardSelUI();
-};
-
-// FIX: _applyCardSelUI is now clean — no inner function declarations
-function _applyCardSelUI(){
   document.getElementById('myHand').querySelectorAll('.card').forEach((el,idx)=>{
-    el.classList.remove('sel','auto-hint');
-    if(App.selected.has(idx)){
-      el.classList.add('sel');
-      el.style.transform='translateY(-16px)';
-    } else {
-      el.style.transform='';
-    }
+    el.className=el.className.replace(' sel','')+(App.selected.has(idx)?' sel':'');
+    el.style.transform=App.selected.has(idx)?'translateY(-16px)':'';
   });
-
-  const btnPlay = document.getElementById('btnPlay');
-  if(btnPlay){
-    if(App.selected.size > 0) btnPlay.classList.add('has-selection');
-    else btnPlay.classList.remove('has-selection');
-  }
-}
+};
 
 window.doPlay=async function(){
   const sel=Array.from(App.selected);if(!sel.length){setGameStatus('Hãy chọn bài trước!');return;}
@@ -1689,6 +1606,7 @@ window.doPlay=async function(){
   newGs.hands[App.mySlot]=newGs.hands[App.mySlot].filter((_,i)=>!sel.includes(i));
   newGs.lastPlay=played;newGs.lastPlayer=App.mySlot;newGs.passCount=0;
   const logArr=Array.isArray(newGs.log)?newGs.log:Object.values(newGs.log||{});
+  
   newGs.log=logArr;
   if(newGs.hands[App.mySlot].length===0){
     newGs.gameOver=true;newGs.winner=App.mySlot;
@@ -1710,6 +1628,7 @@ window.doForcePass=async function(){
   SFX.pass();stopImpatienceTimers();
   const newGs=JSON.parse(JSON.stringify(gs));
   const logArr=Array.isArray(newGs.log)?newGs.log:Object.values(newGs.log||{});
+  
   newGs.lastPlay=[];newGs.passCount=0;
   newGs.turn=1-App.mySlot;
   newGs.lastPlayer=App.mySlot;
@@ -1739,199 +1658,38 @@ window.sortHand=async function(){
   await dbUpdate('rooms/'+App.currentRoom,{gameState:newGs});
 };
 
-// ═══════════════════════════════════════════════════════
-// HINT — TÌM BÀI GỢI Ý THÔNG MINH
-// ═══════════════════════════════════════════════════════
-
-function findBestCounter(hand, lastPlay) {
-  if (!lastPlay || !lastPlay.length) return [0];
-  const lc = getCombo(lastPlay);
-  if (!lc) return [];
-
-  function getAllBombs() {
-    const rc = {};
-    hand.forEach((c, i) => { if (!rc[c.r]) rc[c.r] = []; rc[c.r].push(i); });
-    const bombs = [];
-    for (const r of RANK_ORDER) {
-      if (rc[r] && rc[r].length === 4) {
-        const idxs = rc[r];
-        const c = getCombo(idxs.map(i => hand[i]));
-        if (c && canBeat(c, lastPlay)) bombs.push(idxs);
+window.doHint=async function(){
+  SFX.click();const room=await dbGet('rooms/'+App.currentRoom);if(!room||!room.gameState)return;
+  const gs=room.gameState;if(gs.turn!==App.mySlot)return;
+  const hand=gs.hands[App.mySlot];
+  let hint=[];
+  if(!gs.lastPlay||!gs.lastPlay.length){
+    hint=[0];
+  } else {
+    const lc=getCombo(gs.lastPlay);
+    if(lc){
+      if(lc.type==='single'){
+        for(let i=0;i<hand.length;i++){
+          const c=getCombo([hand[i]]);
+          if(c&&canBeat(c,gs.lastPlay)){hint=[i];break;}
+        }
+      } else if(lc.type==='pair'){
+        const rmap={};
+        hand.forEach((c,i)=>{if(!rmap[c.r])rmap[c.r]=[];rmap[c.r].push(i);});
+        for(const r of RANK_ORDER){
+          if(rmap[r]&&rmap[r].length>=2){
+            const t=getCombo(rmap[r].slice(0,2).map(i=>hand[i]));
+            if(t&&canBeat(t,gs.lastPlay)){hint=rmap[r].slice(0,2);break;}
+          }
+        }
       }
     }
-    return bombs;
   }
-
-  if (lc.type === 'bomb4') {
-    const bombs = getAllBombs();
-    if (bombs.length) return bombs[0];
-    return [];
-  }
-
-  let best = null;
-  if (lc.type === 'single') best = findBestSingle(hand, lastPlay);
-  else if (lc.type === 'pair') best = findBestPair(hand, lastPlay);
-  else if (lc.type === 'triple') best = findBestTriple(hand, lastPlay);
-  else if (lc.type === 'seq') best = findSeq(hand, lc.len, lastPlay);
-  else if (lc.type === 'dseq') best = findDSeq(hand, lc.pairs, lastPlay);
-
-  if (best && best.length) return best;
-
-  if (lc.type === 'single' && lastPlay[0].r === '2') {
-    const ds3 = findDSeq(hand, 3, lastPlay);
-    if (ds3.length) return ds3;
-  }
-  if (lc.type === 'pair' && lastPlay[0].r === '2') {
-    const ds4 = findDSeq(hand, 4, lastPlay);
-    if (ds4.length) return ds4;
-  }
-
-  const bombs = getAllBombs();
-  if (bombs.length) return bombs[0];
-
-  return [];
-}
-
-function findBestSingle(hand, lastPlay) {
-  const lc = getCombo(lastPlay);
-  if (!lc) return [];
-  const lastCard = lastPlay[0];
-  const lastRankIdx = RANK_ORDER.indexOf(lastCard.r);
-  const lastSuitIdx = SUIT_ORDER.indexOf(lastCard.s);
-
-  // Duyệt từng rank từ thấp đến cao, trong cùng rank duyệt suit từ thấp đến cao
-  for (let ri = lastRankIdx; ri < RANK_ORDER.length; ri++) {
-    const r = RANK_ORDER[ri];
-    for (let si = (ri === lastRankIdx ? lastSuitIdx + 1 : 0); si < SUIT_ORDER.length; si++) {
-      const s = SUIT_ORDER[si];
-      const idx = hand.findIndex(c => c.r === r && c.s === s);
-      if (idx === -1) continue;
-      const combo = getCombo([hand[idx]]);
-      if (combo && canBeat(combo, lastPlay)) return [idx];
-    }
-  }
-  return [];
-}
-
-function findBestPair(hand, lastPlay) {
-  const rc = {};
-  hand.forEach((c, i) => { if (!rc[c.r]) rc[c.r] = []; rc[c.r].push(i); });
-  const candidates = [];
-  for (const r of RANK_ORDER) {
-    if (rc[r] && rc[r].length >= 2) {
-      const idxs = rc[r].slice(0, 2);
-      const combo = getCombo(idxs.map(i => hand[i]));
-      if (combo && canBeat(combo, lastPlay)) candidates.push({ idxs, val: combo.val });
-    }
-  }
-  if (!candidates.length) return [];
-  candidates.sort((a, b) => a.val - b.val);
-  return candidates[0].idxs;
-}
-
-function findBestTriple(hand, lastPlay) {
-  const rc = {};
-  hand.forEach((c, i) => { if (!rc[c.r]) rc[c.r] = []; rc[c.r].push(i); });
-  const candidates = [];
-  for (const r of RANK_ORDER) {
-    if (rc[r] && rc[r].length >= 3) {
-      const idxs = rc[r].slice(0, 3);
-      const combo = getCombo(idxs.map(i => hand[i]));
-      if (combo && canBeat(combo, lastPlay)) candidates.push({ idxs, val: combo.val });
-    }
-  }
-  if (!candidates.length) return [];
-  candidates.sort((a, b) => a.val - b.val);
-  return candidates[0].idxs;
-}
-
-function findSeq(hand, len, lastPlay) {
-  const byRank = {};
-  hand.forEach((c, i) => {
-    if (c.r !== '2') { if (!byRank[c.r]) byRank[c.r] = []; byRank[c.r].push(i); }
+  App.selected=new Set(hint);
+  setGameStatus(hint.length?'Gợi ý: chọn '+hint.length+' lá.':'Không có bài để đánh — hãy bỏ lượt!');
+  document.getElementById('myHand').querySelectorAll('.card').forEach((el,idx)=>{
+    el.className=el.className.replace(' sel','')+(App.selected.has(idx)?' sel':'');
   });
-  const validRanks = RANK_ORDER.filter(r => r !== '2' && byRank[r]);
-  const candidates = [];
-  for (let s = 0; s <= validRanks.length - len; s++) {
-    const seg = validRanks.slice(s, s + len);
-    let ok = true;
-    for (let k = 1; k < seg.length; k++) {
-      if (RANK_ORDER.indexOf(seg[k]) - RANK_ORDER.indexOf(seg[k-1]) !== 1) { ok = false; break; }
-    }
-    if (!ok) continue;
-    const idxs = seg.map(r => byRank[r].reduce((a, b) => cardValue(hand[a]) < cardValue(hand[b]) ? a : b));
-    const combo = getCombo(idxs.map(i => hand[i]));
-    if (combo && canBeat(combo, lastPlay)) candidates.push({ idxs, val: combo.val });
-  }
-  if (!candidates.length) return [];
-  candidates.sort((a, b) => a.val - b.val);
-  return candidates[0].idxs;
-}
-
-function findDSeq(hand, pairs, lastPlay) {
-  const byRank = {};
-  hand.forEach((c, i) => {
-    if (c.r !== '2') { if (!byRank[c.r]) byRank[c.r] = []; byRank[c.r].push(i); }
-  });
-  const pairRanks = RANK_ORDER.filter(r => r !== '2' && byRank[r] && byRank[r].length >= 2);
-  const candidates = [];
-  for (let s = 0; s <= pairRanks.length - pairs; s++) {
-    const seg = pairRanks.slice(s, s + pairs);
-    let ok = true;
-    for (let k = 1; k < seg.length; k++) {
-      if (RANK_ORDER.indexOf(seg[k]) - RANK_ORDER.indexOf(seg[k-1]) !== 1) { ok = false; break; }
-    }
-    if (!ok) continue;
-    const idxs = seg.flatMap(r => byRank[r].slice(0, 2));
-    const combo = getCombo(idxs.map(i => hand[i]));
-    if (combo && canBeat(combo, lastPlay)) candidates.push({ idxs, val: combo.val });
-  }
-  if (!candidates.length) return [];
-  candidates.sort((a, b) => a.val - b.val);
-  return candidates[0].idxs;
-}
-
-window.doHint = async function() {
-  SFX.click();
-  const room = await dbGet('rooms/' + App.currentRoom);
-  if (!room || !room.gameState) return;
-  const gs = room.gameState;
-  if (gs.turn !== App.mySlot) return;
-
-  const hint = findBestCounter(gs.hands[App.mySlot], gs.lastPlay);
-  App.selected = new Set(hint);
-
-  let msg;
-  if (!hint.length) {
-    msg = 'Không có bài để đánh — hãy bỏ lượt!';
-  } else {
-    const hintCards = hint.map(i => gs.hands[App.mySlot][i]);
-    const combo = getCombo(hintCards);
-    const typeNames = {
-      single: 'đơn', pair: 'đôi', triple: 'bộ 3',
-      seq: 'sảnh ' + (combo && combo.len ? combo.len + ' lá' : ''),
-      dseq: (combo && combo.pairs ? combo.pairs : '') + ' đôi thông',
-      bomb4: '💣 BOM 4 CÂY'
-    };
-    const typeName = combo ? (typeNames[combo.type] || combo.type) : '';
-    msg = `Gợi ý: ${typeName} — nhấn Đánh bài để xác nhận!`;
-  }
-
-  setGameStatus(msg);
-  document.getElementById('myHand').querySelectorAll('.card').forEach((el, idx) => {
-    el.classList.remove('sel','auto-hint');
-    if(App.selected.has(idx)){
-      el.classList.add('sel','auto-hint');
-      el.style.transform = 'translateY(-16px)';
-    } else {
-      el.style.transform = '';
-    }
-  });
-  const btnPlay = document.getElementById('btnPlay');
-  if(btnPlay){
-    if(hint.length) btnPlay.classList.add('has-selection');
-    else btnPlay.classList.remove('has-selection');
-  }
 };
 
 function setGameStatus(msg){document.getElementById('gameStatus').textContent=msg;}
@@ -1946,15 +1704,15 @@ window.doNewRound=async function(){
   const lastWinner=prevGs&&prevGs.winner>=0?prevGs.winner:null;
   const newRound=(room.round||1)+1;
   const newGs=createGameState(room.players,room.playerDisplays,newRound,lastWinner);
-  newGs.scores=scores;
-  const oldLog=(prevGs&&prevGs.log)?(Array.isArray(prevGs.log)?prevGs.log:Object.values(prevGs.log)):[];
-  newGs.log=[...oldLog, ...newGs.log];
+newGs.scores=scores;
+const oldLog=(prevGs&&prevGs.log)?(Array.isArray(prevGs.log)?prevGs.log:Object.values(prevGs.log)):[];
+newGs.log=[...oldLog, ...newGs.log];
   const oldFirstCount=(prevGs&&prevGs.firstCount)||{};
   newGs.firstCount=Object.assign({},oldFirstCount);
   const fp=room.playerDisplays[newGs.turn]||('P'+(newGs.turn+1));
   newGs.firstCount[fp]=(newGs.firstCount[fp]||0)+1;
- SFX.resetLastTurn();
-  _autoHintTurnSlot = '';
+  SFX.resetLastTurn();
+  
   await dbUpdate('rooms/'+App.currentRoom,{gameState:newGs,status:'playing',round:newRound});
   App.selected=new Set();
   setTimeout(()=>{for(let i=0;i<6;i++)setTimeout(()=>SFX.cardFlip(),i*60);},200);
@@ -2180,7 +1938,6 @@ document.addEventListener('keydown',e=>{
 })();
 
 window.App = App;
-
 // ── PING & RECONNECT ──
 let _pingInterval = null;
 let _reconnectTimeout = null;
@@ -2263,14 +2020,13 @@ async function tryReconnect(){
         showLobby(); return;
       }
       if(!App.listeners.game) startGameListener();
-      startPingSystem();
+      startPingSystem(); // ← fix chính: restart ping sau reconnect
     } catch(e){
       _isReconnecting=false;
       _reconnectTimeout=setTimeout(tryReconnect, 3000);
     }
   }, 2000);
 }
-
 </script>
 </body>
 </html>
