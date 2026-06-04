@@ -1578,11 +1578,9 @@ function renderGame(room){
   const myCards=gs.hands[my]||[];
   document.getElementById('myHand').innerHTML=myCards.map((c,i)=>cardHTML(c,i,myTurn&&!gs.gameOver)).join('');
 
-  // Auto-hint tự động khi vừa đến lượt mình
-  if(myTurn && !gs.gameOver && App.selected.size === 0 && _autoHintTurnSlot !== gs.turn){
-    _autoHintTurnSlot = gs.turn;
-    setTimeout(()=>applyAutoHint(myCards, gs.lastPlay), 180);
-  }
+  const _thisTurnKey = gs.turn + '_' + (gs.turnStartAt || 0);
+if(myTurn && !gs.gameOver && App.selected.size === 0 && _autoHintTurnSlot !== _thisTurnKey){
+  _autoHintTurnSlot = _thisTurnKey;
 
   // Nếu đã có selection thì re-apply UI
   if(App.selected.size > 0) _applyCardSelUI();
@@ -1795,14 +1793,24 @@ function findBestCounter(hand, lastPlay) {
 }
 
 function findBestSingle(hand, lastPlay) {
-  const candidates = [];
-  hand.forEach((c, i) => {
-    const combo = getCombo([c]);
-    if (combo && canBeat(combo, lastPlay)) candidates.push({ idxs: [i], val: combo.val });
-  });
-  if (!candidates.length) return [];
-  candidates.sort((a, b) => a.val - b.val);
-  return candidates[0].idxs;
+  const lc = getCombo(lastPlay);
+  if (!lc) return [];
+  const lastCard = lastPlay[0];
+  const lastRankIdx = RANK_ORDER.indexOf(lastCard.r);
+  const lastSuitIdx = SUIT_ORDER.indexOf(lastCard.s);
+
+  // Duyệt từng rank từ thấp đến cao, trong cùng rank duyệt suit từ thấp đến cao
+  for (let ri = lastRankIdx; ri < RANK_ORDER.length; ri++) {
+    const r = RANK_ORDER[ri];
+    for (let si = (ri === lastRankIdx ? lastSuitIdx + 1 : 0); si < SUIT_ORDER.length; si++) {
+      const s = SUIT_ORDER[si];
+      const idx = hand.findIndex(c => c.r === r && c.s === s);
+      if (idx === -1) continue;
+      const combo = getCombo([hand[idx]]);
+      if (combo && canBeat(combo, lastPlay)) return [idx];
+    }
+  }
+  return [];
 }
 
 function findBestPair(hand, lastPlay) {
@@ -1946,7 +1954,7 @@ window.doNewRound=async function(){
   const fp=room.playerDisplays[newGs.turn]||('P'+(newGs.turn+1));
   newGs.firstCount[fp]=(newGs.firstCount[fp]||0)+1;
  SFX.resetLastTurn();
-  _autoHintTurnSlot = -1;
+  _autoHintTurnSlot = '';
   await dbUpdate('rooms/'+App.currentRoom,{gameState:newGs,status:'playing',round:newRound});
   App.selected=new Set();
   setTimeout(()=>{for(let i=0;i<6;i++)setTimeout(()=>SFX.cardFlip(),i*60);},200);
