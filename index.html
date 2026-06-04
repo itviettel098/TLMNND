@@ -1154,10 +1154,10 @@ function renderRoom(room){
   }
 }
 
-window.doReady=async function(){SFX.click();await dbUpdate('rooms/'+App.currentRoom,{[`ready/${App.mySlot}`]:true});};
+window.doReady=async function(){try{SFX.click();}catch(e){}await dbUpdate('rooms/'+App.currentRoom,{[`ready/${App.mySlot}`]:true});};
 
 window.doStartGame=async function(){
-  SFX.click();
+  try{SFX.click();}catch(e){}
   const room=await dbGet('rooms/'+App.currentRoom);if(!room)return;
   if(room.adminCheatMode) cheatDeckMode = room.adminCheatMode;
   const newRound = room.round || 1;
@@ -1695,7 +1695,7 @@ window.doHint=async function(){
 function setGameStatus(msg){document.getElementById('gameStatus').textContent=msg;}
 
 window.doNewRound=async function(){
-  SFX.click();
+  try{SFX.click();}catch(e){}
   document.getElementById('winOverlay').className='game-overlay';
   _winShown=false;_prevTurnSlot=-1;
   const room=await dbGet('rooms/'+App.currentRoom);if(!room)return;
