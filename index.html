@@ -1518,7 +1518,6 @@ function enterGame(room){
   document.getElementById('gameRoomName').textContent='🃏 '+room.name;
   document.getElementById('gameRound').textContent='Ván '+(room.round||1);
   App.selected=new Set();App.lastGameChatCount=0;App.lastGiftTs=0;_prevRoomPlayerCount=2;
-  _lastLogLen=0;_winShown=false;_prevTurnSlot=-1;
   _lastLogLen=0;_winShown=false;_prevTurnSlot=-1;resetTauntState();
   showScreen('gameScreen');
   document.getElementById('winOverlay').className='game-overlay';
