@@ -1161,7 +1161,7 @@ window.doStartGame=async function(){
   const room=await dbGet('rooms/'+App.currentRoom);if(!room)return;
   if(room.adminCheatMode) cheatDeckMode = room.adminCheatMode;
   const newRound = room.round || 1;
-  const lastWinner = null;
+  const prevGs = room.gameState; const lastWinner = prevGs && prevGs.winner >= 0 ? prevGs.winner : null;
 const gs=createGameState(room.players,room.playerDisplays,newRound,lastWinner);
   const fp=room.playerDisplays[gs.turn]||('P'+(gs.turn+1));
   if(!gs.firstCount) gs.firstCount={};
