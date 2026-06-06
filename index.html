@@ -573,11 +573,14 @@ body{font-family:'Noto Sans',sans-serif;background:var(--green-dark);min-height:
     </div>
 
     <div class="stats-panel" id="statsPanel">
-      <div class="stats-header">
-        <span class="stats-title">📊 Thống kê phiên chơi</span>
-        <span style="color:rgba(255,255,255,0.3);font-size:10px;" id="statsTotalRounds"></span>
-      </div>
-      <div class="stats-body">
+  <div class="stats-header" onclick="toggleStats()" style="cursor:pointer;">
+    <span class="stats-title">📊 Thống kê phiên chơi</span>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span style="color:rgba(255,255,255,0.3);font-size:10px;" id="statsTotalRounds"></span>
+      <span id="statsArrow" style="color:rgba(255,255,255,0.4);font-size:12px;transition:transform .3s;">▶</span>
+    </div>
+  </div>
+  <div class="stats-body" id="statsBody" style="display:none;">
         <div class="stats-scores" id="statsScores"></div>
         <div class="stats-section">
           <div class="stats-section-title">Lượt đi trước</div>
@@ -633,6 +636,14 @@ body{font-family:'Noto Sans',sans-serif;background:var(--green-dark);min-height:
 </div>
 
 <script>
+function toggleStats(){
+  const body = document.getElementById('statsBody');
+  const arrow = document.getElementById('statsArrow');
+  if(!body || !arrow) return;
+  const isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : '';
+  arrow.style.transform = isOpen ? '' : 'rotate(90deg)';
+}
 // ── VIBRATION helper ──
 function vib(pattern){if(navigator.vibrate)try{navigator.vibrate(pattern);}catch(e){}}
 
@@ -888,6 +899,139 @@ const TTS=(()=>{
 function showTurnToast(msg){const t=document.getElementById('turnToast');if(!t)return;t.textContent=msg;t.className='turn-toast show';setTimeout(()=>{t.className='turn-toast';},2400);}
 function showImpatienceToast(msg){const t=document.getElementById('impatienceToast');if(!t)return;t.textContent=msg;t.className='impatience-toast show';setTimeout(()=>{t.className='impatience-toast';},3800);}
 function escHtml(str){return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+// ── AUTO TAUNT SPEECH ──
+const TAUNTS = {
+  haveBomb: [
+    "Thèm miếng thịt heo quá, ai nuôi heo thả rông ra giùm cái coi.",
+    "Con heo này béo tốt dữ nè, ai có lòng tốt dắt nó đi dạo đi.",
+    "Có ai có heo không? Định giá giùm cái coi, nuôi lâu tốn cám quá!",
+    "Ra đi cưng, không ai làm gì đâu mà sợ. Thề không có hàng!"
+  ],
+  oppHesitate: [
+    "Đỡ đi cưng, hay đánh đi cưng... Cứ ôm khư khư tí nữa thối ráng chịu nha!",
+    "Nghĩ gì lâu thế, bộ đang tính xem lát nữa chung bao nhiêu tiền hả?",
+    "Đánh nhanh cho chợ nó đông, đứng ngâm cứu như đang giải toán đại học vậy.",
+    "Bài xấu thì buông tay cho nhanh, cố đấm ăn xôi làm gì cho mệt đầu.",
+    "Có chạy được không? Không chạy được thì để người khác đi, đừng làm nghẽn mạch giao thông!"
+  ],
+  killedPig: [
+    "Xin cái chân giò nhé! Nuôi heo cho mập rồi dâng tận miệng à?",
+    "Đã bảo rồi, ra đường đừng mang heo theo, dễ bị bắt cóc lắm.",
+    "Cảm ơn vì món quà bất ngờ nha, đúng lúc đang thiếu tiền đi chợ.",
+    "Này thì gáy này! Chừa cái tội thích ra oai chưa cưng?"
+  ],
+  almostWin: [
+    "Chuẩn bị đếm tiền đi là vừa, sảnh này đi về thẳng nhà luôn.",
+    "Bật chế độ bay lượn nhé, ở lại chơi vui vẻ nha mấy đứa.",
+    "Bài đẹp như người yêu cũ vậy, không muốn về cũng phải về."
+  ]
+};
+
+let _tauntCooldown = false;
+let _tauntBombSaid = false;
+let _tauntAlmostWinSaid = false;
+let _hesitateTimer = null;
+let _prevOppTurn = false;
+let _prevMyTurn2 = false;
+let _prevMyCardCount = 13;
+let _tauntLastBombPlay = -1;
+
+function pickRandom(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+function speakTaunt(msg){
+  if(_tauntCooldown) return;
+  if(!window.speechSynthesis) return;
+  _tauntCooldown = true;
+  setTimeout(()=>{ _tauntCooldown = false; }, 9000);
+  try{
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(msg);
+    u.lang = 'vi-VN'; u.rate = 0.92; u.pitch = 1.1; u.volume = 1.0;
+    const go = ()=>{
+      const vs = window.speechSynthesis.getVoices();
+      const vi = vs.find(v=>v.lang==='vi-VN') || vs.find(v=>v.lang.startsWith('vi')) || null;
+      if(vi) u.voice = vi;
+      window.speechSynthesis.speak(u);
+    };
+    if(window.speechSynthesis.getVoices().length > 0) go();
+    else { window.speechSynthesis.onvoiceschanged = go; setTimeout(go, 300); }
+  }catch(e){}
+}
+
+function hasBombInHand(hand){
+  if(!hand || hand.length < 4) return false;
+  const rc = {};
+  hand.forEach(c => rc[c.r] = (rc[c.r]||0)+1);
+  if(Object.values(rc).some(v => v >= 4)) return true;
+  // Ba đôi thông
+  const pairs = Object.entries(rc).filter(([r,cnt])=>cnt>=2).map(([r])=>r);
+  if(pairs.length >= 3){
+    const pr = pairs.map(r => ['3','4','5','6','7','8','9','10','J','Q','K','A','2'].indexOf(r)).sort((a,b)=>a-b);
+    for(let i = 0; i <= pr.length-3; i++){
+      if(pr[i+1]-pr[i]===1 && pr[i+2]-pr[i+1]===1) return true;
+    }
+  }
+  return false;
+}
+
+function resetTauntState(){
+  _tauntCooldown = false;
+  _tauntBombSaid = false;
+  _tauntAlmostWinSaid = false;
+  _prevOppTurn = false;
+  _prevMyTurn2 = false;
+  _prevMyCardCount = 13;
+  _tauntLastBombPlay = -1;
+  if(_hesitateTimer){ clearTimeout(_hesitateTimer); _hesitateTimer = null; }
+}
+
+function checkTaunts(gs, mySlot){
+  if(!gs || gs.gameOver) return;
+  const myHand = gs.hands[mySlot] || [];
+  const myTurn = gs.turn === mySlot;
+  const oppTurn = !myTurn;
+  const myCardCount = myHand.length;
+  const logLen = gs.log ? (Array.isArray(gs.log)?gs.log.length:Object.keys(gs.log).length) : 0;
+
+  // 1. Có tứ quý / ba đôi thông → nhử heo (lượt đối thủ, chỉ 1 lần/ván)
+  if(!_tauntBombSaid && oppTurn && hasBombInHand(myHand)){
+    _tauntBombSaid = true;
+    setTimeout(()=> speakTaunt(pickRandom(TAUNTS.haveBomb)), 1500);
+  }
+
+  // 2. Đối thủ ngập ngừng > 12 giây
+  if(oppTurn && !_prevOppTurn){
+    if(_hesitateTimer){ clearTimeout(_hesitateTimer); _hesitateTimer = null; }
+    _hesitateTimer = setTimeout(()=>{
+      if(!myTurn) speakTaunt(pickRandom(TAUNTS.oppHesitate));
+    }, 12000);
+  }
+  if(myTurn && _hesitateTimer){
+    clearTimeout(_hesitateTimer); _hesitateTimer = null;
+  }
+
+  // 3. Mình vừa bomb chặt (vừa đánh bomb4, logLen tăng)
+  if(myTurn && !_prevMyTurn2 && logLen !== _tauntLastBombPlay){
+    const lp = gs.lastPlay || [];
+    if(gs.lastPlayer === mySlot && lp.length > 0){
+      const combo = window.getCombo ? window.getCombo(lp) : null;
+      if(combo && combo.type === 'bomb4'){
+        _tauntLastBombPlay = logLen;
+        setTimeout(()=> speakTaunt(pickRandom(TAUNTS.killedPig)), 800);
+      }
+    }
+  }
+
+  // 4. Sắp về nhất (còn ≤ 3 lá, lượt mình)
+  if(myTurn && myCardCount <= 3 && myCardCount < _prevMyCardCount && !_tauntAlmostWinSaid){
+    _tauntAlmostWinSaid = true;
+    setTimeout(()=> speakTaunt(pickRandom(TAUNTS.almostWin)), 1000);
+  }
+
+  _prevOppTurn = oppTurn;
+  _prevMyTurn2 = myTurn;
+  _prevMyCardCount = myCardCount;
+}
 </script>
 
 <script type="module">
@@ -1375,6 +1519,7 @@ function enterGame(room){
   document.getElementById('gameRound').textContent='Ván '+(room.round||1);
   App.selected=new Set();App.lastGameChatCount=0;App.lastGiftTs=0;_prevRoomPlayerCount=2;
   _lastLogLen=0;_winShown=false;_prevTurnSlot=-1;
+  _lastLogLen=0;_winShown=false;_prevTurnSlot=-1;resetTauntState();
   showScreen('gameScreen');
   document.getElementById('winOverlay').className='game-overlay';
   setTimeout(()=>{for(let i=0;i<6;i++)setTimeout(()=>SFX.cardFlip(),i*60);},200);
@@ -1507,6 +1652,7 @@ function renderGame(room){
     _lastLogLen=logArr.length;
   }
   renderStats(gs, room.playerDisplays, App.mySlot);
+  checkTaunts(gs, App.mySlot);
 
   const myTurn=gs.turn===my;
   if(!gs.gameOver){
@@ -1711,7 +1857,7 @@ function setGameStatus(msg){document.getElementById('gameStatus').textContent=ms
 window.doNewRound=async function(){
   try{SFX.click();}catch(e){}
   document.getElementById('winOverlay').className='game-overlay';
-  _winShown=false;_prevTurnSlot=-1;
+  _winShown=false;_prevTurnSlot=-1;resetTauntState();
   const room=await dbGet('rooms/'+App.currentRoom);if(!room)return;
   const prevGs=room.gameState;
   const scores=prevGs&&prevGs.scores?prevGs.scores:[0,0];
