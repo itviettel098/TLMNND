@@ -360,16 +360,18 @@ body{font-family:'Noto Sans',sans-serif;background:var(--green-dark);min-height:
   <div class="cheat-row">
     <button class="btn-cheat btn-cheat-see" onclick="toggleSeeOppCards()" id="btnSeeCards">👁 Xem bài đối thủ: TẮT</button>
   </div>
-  <div class="cheat-section">🎴 Trộn bài — BẠN nhận:</div>
+  <div class="cheat-section">🎴 BẠN nhận:</div>
   <div class="cheat-row">
     <button class="btn-cheat btn-cheat-twos" onclick="setCheatDeck('twos')" id="btnCheatTwos">4 lá 2</button>
     <button class="btn-cheat btn-cheat-aces" onclick="setCheatDeck('aces')" id="btnCheatAces">4 lá A</button>
+    <button class="btn-cheat" style="background:linear-gradient(135deg,#6b1a8c,#9933cc);color:#fff;" onclick="setCheatDeck('bombany')" id="btnCheatBombAny">💣 Tứ quý bất kỳ</button>
     <button class="btn-cheat btn-cheat-off" onclick="setCheatDeck('normal')" id="btnCheatNormal">Bình thường</button>
   </div>
-  <div class="cheat-section">🎴 Trộn bài — ĐỐI THỦ nhận:</div>
+  <div class="cheat-section">🎴 ĐỐI THỦ nhận:</div>
   <div class="cheat-row">
     <button class="btn-cheat btn-cheat-opp-twos" onclick="setOppCheatDeck('twos')" id="btnCheatOppTwos">4 lá 2</button>
     <button class="btn-cheat btn-cheat-opp-aces" onclick="setOppCheatDeck('aces')" id="btnCheatOppAces">4 lá A</button>
+    <button class="btn-cheat" style="background:linear-gradient(135deg,#8c3300,#cc5500);color:#fff;" onclick="setOppCheatDeck('bombany')" id="btnCheatOppBombAny">💣 Tứ quý bất kỳ</button>
     <button class="btn-cheat btn-cheat-off" onclick="setOppCheatDeck('normal')" id="btnCheatOppNormal">Bình thường</button>
   </div>
   <div style="color:rgba(255,215,0,0.5);font-size:10px;text-align:center;" id="cheatStatus">Chế độ bình thường</div>
@@ -655,24 +657,27 @@ function initAdminUI(){
 
 function updateCheatUI(){
   const labels={
-    'normal':'Chế độ bình thường',
-    'twos':'🃏 BẠN nhận: Toàn bài 2',
-    'aces':'🃏 BẠN nhận: Toàn bài Át',
-    'opp_twos':'🃏 ĐỐI THỦ nhận: Toàn bài 2',
-    'opp_aces':'🃏 ĐỐI THỦ nhận: Toàn bài Át'
+    'normal'      : 'Chế độ bình thường',
+    'twos'        : '🃏 BẠN nhận: 4 lá 2',
+    'aces'        : '🃏 BẠN nhận: 4 lá Át',
+    'bombany'     : '💣 BẠN nhận: Tứ quý bất kỳ',
+    'opp_twos'    : '🃏 ĐỐI THỦ nhận: 4 lá 2',
+    'opp_aces'    : '🃏 ĐỐI THỦ nhận: 4 lá Át',
+    'opp_bombany' : '💣 ĐỐI THỦ nhận: Tứ quý bất kỳ',
   };
   document.getElementById('cheatStatus').textContent = labels[cheatDeckMode] || 'Bình thường';
-  ['btnCheatTwos','btnCheatAces','btnCheatNormal','btnCheatOppTwos','btnCheatOppAces','btnCheatOppNormal'].forEach(id=>{
-    const el=document.getElementById(id);if(el)el.style.outline='none';
-  });
+  document.querySelectorAll('.btn-cheat').forEach(el => el.style.outline='none');
   const activeMap={
-    'twos':'btnCheatTwos','aces':'btnCheatAces','normal':'btnCheatNormal',
-    'opp_twos':'btnCheatOppTwos','opp_aces':'btnCheatOppAces'
+    'normal'      : 'btnCheatNormal',
+    'twos'        : 'btnCheatTwos',
+    'aces'        : 'btnCheatAces',
+    'bombany'     : 'btnCheatBombAny',
+    'opp_twos'    : 'btnCheatOppTwos',
+    'opp_aces'    : 'btnCheatOppAces',
+    'opp_bombany' : 'btnCheatOppBombAny',
   };
-  if(activeMap[cheatDeckMode]){
-    const el=document.getElementById(activeMap[cheatDeckMode]);
-    if(el)el.style.outline='2px solid #ffd700';
-  }
+  const activeId = activeMap[cheatDeckMode];
+  if(activeId){ const el=document.getElementById(activeId); if(el) el.style.outline='2px solid #ffd700'; }
 }
 
 window.toggleCheatPanel=function(){
@@ -1220,17 +1225,26 @@ window.sortCards=sortCards;
 function makeCheatDeck(mode, adminSlot){
   if(mode === 'normal') return shuffle(makeDeck());
   const isOpp = mode.startsWith('opp_');
-  const rank   = (mode === 'twos' || mode === 'opp_twos') ? '2' : 'A';
   const targetSlot = isOpp ? (1 - adminSlot) : adminSlot;
+  const modeCore = isOpp ? mode.slice(4) : mode;
+
+  let rank;
+  if(modeCore === 'twos')        rank = '2';
+  else if(modeCore === 'aces')   rank = 'A';
+  else if(modeCore === 'bombany'){
+    const pool = ['3','4','5','6','7','8','9','10','J','Q','K','A'];
+    rank = pool[Math.floor(Math.random() * pool.length)];
+  }
+
   const fullDeck = shuffle(makeDeck());
   const targets  = fullDeck.filter(c => c.r === rank);
   const others   = fullDeck.filter(c => c.r !== rank);
   let oi = 0;
-  const targetHand = [...targets,...Array.from({length: 9}, () => others[oi++])];
-  const otherHand = Array.from({length: 13}, () => others[oi++]);
+  const targetHand = [...targets, ...Array.from({length: 9}, () => others[oi++])];
+  const otherHand  = Array.from({length: 13}, () => others[oi++]);
   const rest = others.slice(oi);
   if(targetSlot === 0) return [...targetHand, ...otherHand, ...rest];
-  else return [...otherHand, ...targetHand, ...rest];
+  else                 return [...otherHand, ...targetHand, ...rest];
 }
 
 function getCombo(cards){
