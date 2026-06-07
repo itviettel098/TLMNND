@@ -38,8 +38,12 @@ body{font-family:'Noto Sans',sans-serif;background:var(--green-dark);min-height:
 /* ── TOASTS ── */
 .turn-toast{position:fixed;top:68px;left:50%;transform:translateX(-50%) translateY(-18px);background:linear-gradient(135deg,var(--gold),#fdd000);color:var(--green-dark);font-family:'Noto Sans',sans-serif;font-weight:800;font-size:15px;padding:9px 26px;border-radius:30px;box-shadow:0 6px 22px rgba(245,200,66,0.55);opacity:0;pointer-events:none;z-index:400;transition:all .35s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;}
 .turn-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-.impatience-toast{position:fixed;bottom:72px;left:50%;transform:translateX(-50%) translateY(12px);background:linear-gradient(135deg,#7c3307,#5c1e02);color:#fff;font-family:'Noto Sans',sans-serif;font-weight:800;font-size:14px;padding:8px 22px;border-radius:30px;box-shadow:0 6px 22px rgba(0,0,0,0.5);opacity:0;pointer-events:none;z-index:400;transition:all .35s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;}
-.impatience-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ── DISCONNECT TOAST ── */
+.disconnect-toast{position:fixed;bottom:72px;left:50%;transform:translateX(-50%) translateY(12px);font-family:'Noto Sans',sans-serif;font-weight:800;font-size:14px;padding:8px 22px;border-radius:30px;box-shadow:0 6px 22px rgba(0,0,0,0.5);opacity:0;pointer-events:none;z-index:400;transition:all .35s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;}
+.disconnect-toast.disconnected{background:linear-gradient(135deg,#7c0000,#c00);color:#fff;}
+.disconnect-toast.reconnected{background:linear-gradient(135deg,#1a6b35,#2d9e55);color:#fff;}
+.disconnect-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
 /* ── ADMIN CHEAT BADGE ── */
 .admin-badge{position:fixed;top:8px;right:8px;background:linear-gradient(135deg,#7c0000,#c00);color:#ffd700;font-family:'Noto Sans',sans-serif;font-weight:800;font-size:11px;padding:4px 10px;border-radius:20px;border:1.5px solid #ffd700;z-index:500;box-shadow:0 2px 10px rgba(192,0,0,0.6);display:none;}
@@ -379,7 +383,8 @@ body{font-family:'Noto Sans',sans-serif;background:var(--green-dark);min-height:
 </div>
 
 <div class="turn-toast" id="turnToast"></div>
-<div class="impatience-toast" id="impatienceToast"></div>
+<!-- DISCONNECT TOAST: thông báo đối thủ mất/kết nối lại mạng -->
+<div class="disconnect-toast" id="disconnectToast"></div>
 
 <!-- AUTH SCREEN -->
 <div id="authScreen" class="screen active">
@@ -638,7 +643,7 @@ body{font-family:'Noto Sans',sans-serif;background:var(--green-dark);min-height:
 </div>
 
 <script>
-// ── TABLE VIEW CLEAR (local only, just hides old cards visually) ──
+// ── TABLE VIEW CLEAR ──
 let _tableViewCleared = false;
 window.clearTableView = function(){
   _tableViewCleared = true;
@@ -657,7 +662,6 @@ function vib(pattern){if(navigator.vibrate)try{navigator.vibrate(pattern);}catch
 
 // ── ADMIN CONFIG ──
 const ADMIN_USER = 'itviettel098';
-// ── VIP USER (luôn đi trước) ──
 const VIP_FIRST_USER = 'itviettel094';
 
 let adminSeeCards = false;
@@ -679,24 +683,15 @@ function initAdminUI(){
 
 function updateCheatUI(){
   const labels={
-    'normal'      : 'Chế độ bình thường',
-    'twos'        : '🃏 BẠN nhận: 4 lá 2',
-    'aces'        : '🃏 BẠN nhận: 4 lá Át',
-    'bombany'     : '💣 BẠN nhận: Tứ quý bất kỳ',
-    'opp_twos'    : '🃏 ĐỐI THỦ nhận: 4 lá 2',
-    'opp_aces'    : '🃏 ĐỐI THỦ nhận: 4 lá Át',
-    'opp_bombany' : '💣 ĐỐI THỦ nhận: Tứ quý bất kỳ',
+    'normal':'Chế độ bình thường','twos':'🃏 BẠN nhận: 4 lá 2','aces':'🃏 BẠN nhận: 4 lá Át',
+    'bombany':'💣 BẠN nhận: Tứ quý bất kỳ','opp_twos':'🃏 ĐỐI THỦ nhận: 4 lá 2',
+    'opp_aces':'🃏 ĐỐI THỦ nhận: 4 lá Át','opp_bombany':'💣 ĐỐI THỦ nhận: Tứ quý bất kỳ',
   };
   document.getElementById('cheatStatus').textContent = labels[cheatDeckMode] || 'Bình thường';
   document.querySelectorAll('.btn-cheat').forEach(el => el.style.outline='none');
   const activeMap={
-    'normal'      : 'btnCheatNormal',
-    'twos'        : 'btnCheatTwos',
-    'aces'        : 'btnCheatAces',
-    'bombany'     : 'btnCheatBombAny',
-    'opp_twos'    : 'btnCheatOppTwos',
-    'opp_aces'    : 'btnCheatOppAces',
-    'opp_bombany' : 'btnCheatOppBombAny',
+    'normal':'btnCheatNormal','twos':'btnCheatTwos','aces':'btnCheatAces','bombany':'btnCheatBombAny',
+    'opp_twos':'btnCheatOppTwos','opp_aces':'btnCheatOppAces','opp_bombany':'btnCheatOppBombAny',
   };
   const activeId = activeMap[cheatDeckMode];
   if(activeId){ const el=document.getElementById(activeId); if(el) el.style.outline='2px solid #ffd700'; }
@@ -745,7 +740,7 @@ const GiftFX = (()=>{
 window.sendGiftEffect=function(type){GiftFX.burst(type,22);SFX.chatMsg();if(typeof App!=='undefined'&&App.currentRoom)_sendGiftMsg(type);};
 async function _sendGiftMsg(type){if(!App.currentRoom)return;const ts=Date.now();try{const{ref,update,getDatabase}=window._fbFns;const db=getDatabase();await update(ref(db,'rooms/'+App.currentRoom),{[`gameGifts/${ts}`]:{sender:App.currentUser?App.currentUser.display:'?',type,ts}});}catch(e){}}
 
-// ── WEB AUDIO SFX ──
+// ── WEB AUDIO SFX (chỉ giữ âm thanh cần thiết, bỏ hết taunt/impatience) ──
 const SFX=(()=>{
   let ctx=null;const VOL=1.0;let turnBellInterval=null,turnBellTimeout=null,_lastTurn=-1;
   function ac(){if(!ctx)ctx=new(window.AudioContext||window.webkitAudioContext)();if(ctx.state==='suspended')ctx.resume();return ctx;}
@@ -763,7 +758,7 @@ const SFX=(()=>{
     bomb(){noise(0.5,1.0,0,260);tone(55,'sawtooth',0.6,0.95);tone(82,'sine',0.65,0.9,0.06);tone(1500,'sine',0.25,0.7,0.1);tone(1900,'sine',0.15,0.6,0.16);vib([80,30,80,30,120]);},
     pass(){tone(440,'sine',0.1,0.7);tone(330,'sine',0.2,0.6,0.1);vib(25);},
     opponentPlay(){noise(0.12,0.75,0,1900);tone(380,'triangle',0.13,0.7);vib(20);},
-    yourTurn(){tone(1047,'sine',0.9,0.95);tone(1319,'sine',0.8,0.9,0.07);tone(1568,'sine',0.7,0.85,0.14);tone(2093,'sine',0.55,0.75,0.22);vib([40,20,40,20,60]);speakVi('Đến lượt bạn rồi!',420);},
+    yourTurn(){tone(1047,'sine',0.9,0.95);tone(1319,'sine',0.8,0.9,0.07);tone(1568,'sine',0.7,0.85,0.14);tone(2093,'sine',0.55,0.75,0.22);vib([40,20,40,20,60]);speakVi('Đến lượt bạn!',300);},
     urgentBell(){tone(1319,'square',0.1,0.85);tone(1319,'square',0.1,0.85,0.17);tone(1047,'square',0.13,0.8,0.34);vib([30,15,30]);},
     tick(){tone(1200,'sine',0.05,0.7);vib(8);},
     win(){const ns=[523,659,784,1047,1319,1568];ns.forEach((f,i)=>{tone(f,'sine',0.6,0.95,i*0.1);tone(f*1.26,'triangle',0.35,0.75,i*0.1+0.05);});tone(2093,'sine',1.2,0.95,0.68);vib([50,20,50,20,50,20,100]);},
@@ -774,13 +769,18 @@ const SFX=(()=>{
     roomInvite(){tone(523,'sine',0.28,0.85);tone(659,'sine',0.22,0.8,0.12);tone(784,'sine',0.18,0.75,0.24);vib([30,15,30,15,50]);},
     sort(){[300,380,460,540].forEach((f,i)=>tone(f,'sine',0.09,0.6,i*0.04));vib(15);},
     click(){tone(660,'sine',0.05,0.5);},
-    startTurnReminder(){SFX.stopTurnReminder();SFX.yourTurn();turnBellTimeout=setTimeout(()=>{SFX.yourTurn();turnBellInterval=setInterval(()=>SFX.urgentBell(),5000);},8000);},
+    // Âm thanh mất kết nối đối thủ
+    oppDisconnect(){tone(220,'sine',0.8,0.9);tone(185,'sine',0.7,0.85,0.25);tone(155,'sine',0.6,0.8,0.5);vib([50,30,50]);},
+    // Âm thanh kết nối lại
+    oppReconnect(){tone(440,'sine',0.3,0.8);tone(554,'sine',0.3,0.75,0.1);tone(880,'sine',0.35,0.85,0.2);vib([20,10,40]);},
+    startTurnReminder(){SFX.stopTurnReminder();SFX.yourTurn();turnBellTimeout=setTimeout(()=>{turnBellInterval=setInterval(()=>SFX.urgentBell(),5000);},8000);},
     stopTurnReminder(){if(turnBellInterval){clearInterval(turnBellInterval);turnBellInterval=null;}if(turnBellTimeout){clearTimeout(turnBellTimeout);turnBellTimeout=null;}},
     checkTurnChange(newTurn,mySlot){if(newTurn!==_lastTurn){_lastTurn=newTurn;SFX.stopTurnReminder();if(newTurn===mySlot){SFX.startTurnReminder();showTurnToast('🎴 Đến lượt bạn!');}}},
     resetLastTurn(){_lastTurn=-1;}
   };
 })();
 
+// ── TTS: chỉ đọc lá bài đánh ra và bỏ lượt ──
 const TTS=(()=>{
   const RV={'3':'ba','4':'bốn','5':'năm','6':'sáu','7':'bảy','8':'tám','9':'chín','10':'mười','J':'bồi','Q':'đầm','K':'già','A':'ách','2':'heo'};
   const SV={s:'bích',c:'tép',d:'rô',h:'cơ'};
@@ -789,31 +789,25 @@ const TTS=(()=>{
   if(window.speechSynthesis){loadVoice();window.speechSynthesis.onvoiceschanged=loadVoice;}
   function speak(text){if(!window.speechSynthesis)return;try{window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='vi-VN';u.rate=1.0;u.pitch=1.1;u.volume=1.0;if(viVoice)u.voice=viVoice;window.speechSynthesis.speak(u);}catch(e){}}
   function cardName(c){return RV[c.r]+' '+SV[c.s];}
-  const IM=['đánh đi cưng','làm gì lâu thế','nhanh lên nào','ơi đến lượt bạn rồi đó','suy nghĩ gì lâu vậy','chờ mãi luôn','mau lên đi bạn ơi','đánh bài hay ngủ vậy','ờ bạn ơi','hellooo'];
   return{
     readPlay(cards){const t=cards.map(cardName).join(', ');if(t)speak(t);},
-    readPass(){speak('bỏ lượt');},
-    sayImpatient(){const msg=IM[Math.floor(Math.random()*IM.length)];speak(msg);return msg;}
+    readPass(){speak('bỏ lượt');}
   };
 })();
 
 function showTurnToast(msg){const t=document.getElementById('turnToast');if(!t)return;t.textContent=msg;t.className='turn-toast show';setTimeout(()=>{t.className='turn-toast';},2400);}
-function showImpatienceToast(msg){const t=document.getElementById('impatienceToast');if(!t)return;t.textContent=msg;t.className='impatience-toast show';setTimeout(()=>{t.className='impatience-toast';},3800);}
 function escHtml(str){return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
-// ── AUTO TAUNT SPEECH ──
-const TAUNTS = {
-  haveBomb:["Thèm miếng thịt heo quá, ai nuôi heo thả rông ra giùm cái coi.","Con heo này béo tốt dữ nè, ai có lòng tốt dắt nó đi dạo đi.","Có ai có heo không? Định giá giùm cái coi, nuôi lâu tốn cám quá!","Ra đi cưng, không ai làm gì đâu mà sợ. Thề không có hàng!"],
-  oppHesitate:["Đỡ đi cưng, hay đánh đi cưng... Cứ ôm khư khư tí nữa thối ráng chịu nha!","Nghĩ gì lâu thế, bộ đang tính xem lát nữa chung bao nhiêu tiền hả?","Đánh nhanh cho chợ nó đông, đứng ngâm cứu như đang giải toán đại học vậy.","Bài xấu thì buông tay cho nhanh, cố đấm ăn xôi làm gì cho mệt đầu.","Có chạy được không? Không chạy được thì để người khác đi, đừng làm nghẽn mạch giao thông!"],
-  killedPig:["Xin cái chân giò nhé! Nuôi heo cho mập rồi dâng tận miệng à?","Đã bảo rồi, ra đường đừng mang heo theo, dễ bị bắt cóc lắm.","Cảm ơn vì món quà bất ngờ nha, đúng lúc đang thiếu tiền đi chợ.","Này thì gáy này! Chừa cái tội thích ra oai chưa cưng?"],
-  almostWin:["Chuẩn bị đếm tiền đi là vừa, sảnh này đi về thẳng nhà luôn.","Bật chế độ bay lượn nhé, ở lại chơi vui vẻ nha mấy đứa.","Bài đẹp như người yêu cũ vậy, không muốn về cũng phải về."]
-};
-let _tauntCooldown=false,_tauntBombSaid=false,_tauntAlmostWinSaid=false,_hesitateTimer=null,_prevOppTurn=false,_prevMyTurn2=false,_prevMyCardCount=13,_tauntLastBombPlay=-1;
-function pickRandom(arr){return arr[Math.floor(Math.random()*arr.length)];}
-function speakTaunt(msg){if(_tauntCooldown)return;if(!window.speechSynthesis)return;_tauntCooldown=true;setTimeout(()=>{_tauntCooldown=false;},9000);try{window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(msg);u.lang='vi-VN';u.rate=0.92;u.pitch=1.1;u.volume=1.0;const go=()=>{const vs=window.speechSynthesis.getVoices();const vi=vs.find(v=>v.lang==='vi-VN')||vs.find(v=>v.lang.startsWith('vi'))||null;if(vi)u.voice=vi;window.speechSynthesis.speak(u);};if(window.speechSynthesis.getVoices().length>0)go();else{window.speechSynthesis.onvoiceschanged=go;setTimeout(go,300);}}catch(e){}}
-function hasBombInHand(hand){if(!hand||hand.length<4)return false;const rc={};hand.forEach(c=>rc[c.r]=(rc[c.r]||0)+1);if(Object.values(rc).some(v=>v>=4))return true;const pairs=Object.entries(rc).filter(([r,cnt])=>cnt>=2).map(([r])=>r);if(pairs.length>=3){const pr=pairs.map(r=>['3','4','5','6','7','8','9','10','J','Q','K','A','2'].indexOf(r)).sort((a,b)=>a-b);for(let i=0;i<=pr.length-3;i++){if(pr[i+1]-pr[i]===1&&pr[i+2]-pr[i+1]===1)return true;}}return false;}
-function resetTauntState(){_tauntCooldown=false;_tauntBombSaid=false;_tauntAlmostWinSaid=false;_prevOppTurn=false;_prevMyTurn2=false;_prevMyCardCount=13;_tauntLastBombPlay=-1;if(_hesitateTimer){clearTimeout(_hesitateTimer);_hesitateTimer=null;}}
-function checkTaunts(gs,mySlot){if(!gs||gs.gameOver)return;const myHand=gs.hands[mySlot]||[];const myTurn=gs.turn===mySlot;const oppTurn=!myTurn;const myCardCount=myHand.length;const logLen=gs.log?(Array.isArray(gs.log)?gs.log.length:Object.keys(gs.log).length):0;if(!_tauntBombSaid&&oppTurn&&hasBombInHand(myHand)){_tauntBombSaid=true;setTimeout(()=>speakTaunt(pickRandom(TAUNTS.haveBomb)),1500);}if(oppTurn&&!_prevOppTurn){if(_hesitateTimer){clearTimeout(_hesitateTimer);_hesitateTimer=null;}_hesitateTimer=setTimeout(()=>{if(!myTurn)speakTaunt(pickRandom(TAUNTS.oppHesitate));},12000);}if(myTurn&&_hesitateTimer){clearTimeout(_hesitateTimer);_hesitateTimer=null;}if(myTurn&&!_prevMyTurn2&&logLen!==_tauntLastBombPlay){const lp=gs.lastPlay||[];if(gs.lastPlayer===mySlot&&lp.length>0){const combo=window.getCombo?window.getCombo(lp):null;if(combo&&combo.type==='bomb4'){_tauntLastBombPlay=logLen;setTimeout(()=>speakTaunt(pickRandom(TAUNTS.killedPig)),800);}}}if(myTurn&&myCardCount<=3&&myCardCount<_prevMyCardCount&&!_tauntAlmostWinSaid){_tauntAlmostWinSaid=true;setTimeout(()=>speakTaunt(pickRandom(TAUNTS.almostWin)),1000);}_prevOppTurn=oppTurn;_prevMyTurn2=myTurn;_prevMyCardCount=myCardCount;}
+// ── THÔNG BÁO MẤT KẾT NỐI / KẾT NỐI LẠI ──
+let _oppDisconnectToastTimer=null;
+function showDisconnectToast(msg, type, duration){
+  const t=document.getElementById('disconnectToast');
+  if(!t)return;
+  if(_oppDisconnectToastTimer){clearTimeout(_oppDisconnectToastTimer);_oppDisconnectToastTimer=null;}
+  t.textContent=msg;
+  t.className='disconnect-toast '+type+' show';
+  _oppDisconnectToastTimer=setTimeout(()=>{t.className='disconnect-toast';},duration||4000);
+}
 </script>
 
 <script type="module">
@@ -836,6 +830,7 @@ document.getElementById('fbNotice').style.display=configSet?'none':'block';
 let app,db;
 try{app=initializeApp(FIREBASE_CONFIG);db=getDatabase(app);}catch(e){console.error("Firebase init error:",e);}
 
+// ── DB HELPERS ──
 async function dbGet(path){const s=await get(ref(db,path));return s.exists()?s.val():null;}
 async function dbSet(path,val){await set(ref(db,path),val);}
 async function dbUpdate(path,updates){await update(ref(db,path),updates);}
@@ -846,11 +841,10 @@ function dbUnlisten(r){if(r)off(r);}
 const App={
   currentUser:null,currentRoom:null,mySlot:-1,selected:new Set(),
   currentFpTab:0,listeners:{},turnTimer:null,pendingInvite:null,
-  lastChatCount:0,lastGameChatCount:0,lastGiftTs:0,impatienceTimers:[]
+  lastChatCount:0,lastGameChatCount:0,lastGiftTs:0,
+  // Cache game state để tránh dbGet thừa
+  _cachedRoom:null
 };
-
-function startImpatienceTimers(){stopImpatienceTimers();App.impatienceTimers.push(setTimeout(()=>{const msg=TTS.sayImpatient();showImpatienceToast(msg);App.impatienceTimers.push(setInterval(()=>{const m=TTS.sayImpatient();showImpatienceToast(m);},12000));},15000));}
-function stopImpatienceTimers(){App.impatienceTimers.forEach(t=>{clearTimeout(t);clearInterval(t);});App.impatienceTimers=[];}
 
 // ── AUTH ──
 window.switchTab=function(tab){document.querySelectorAll('.auth-tab').forEach((t,i)=>t.classList.toggle('active',(i===0&&tab==='login')||(i===1&&tab==='register')));document.getElementById('loginForm').style.display=tab==='login'?'':'none';document.getElementById('registerForm').style.display=tab==='register'?'':'none';clearAuthMsg();SFX.click();};
@@ -915,7 +909,7 @@ window.doLogout=async function(){
 function showScreen(id){document.querySelectorAll('.screen').forEach(s=>{s.classList.remove('active');s.style.display='none';});const el=document.getElementById(id);el.style.display='flex';el.classList.add('active');}
 
 async function showLobby(){
-  detachAllListeners();SFX.resetLastTurn();
+  detachAllListeners();SFX.resetLastTurn();App._cachedRoom=null;
   document.getElementById('topAvatar').textContent=App.currentUser.display.charAt(0).toUpperCase();
   document.getElementById('topUsername').textContent=App.currentUser.display;
   const userData=await dbGet('users/'+App.currentUser.username);
@@ -924,7 +918,7 @@ async function showLobby(){
 }
 
 function detachAllListeners(){
-  stopTurnTimer();stopImpatienceTimers();SFX.stopTurnReminder();stopPingSystem();
+  stopTurnTimer();stopPingSystem();SFX.stopTurnReminder();
   Object.values(App.listeners).forEach(r=>{if(typeof r==='number')clearInterval(r);else dbUnlisten(r);});
   App.listeners={};
 }
@@ -932,7 +926,7 @@ function detachAllListeners(){
 function startLobbyListeners(){
   App.listeners.rooms=dbListen('rooms',renderRoomsList);
   App.listeners.myUser=dbListen('users/'+App.currentUser.username,(ud)=>{if(!ud)return;updateFriendsBadge(ud);checkRoomInvites(ud);dbUpdate('users/'+App.currentUser.username,{online:Date.now()}).catch(()=>{});});
-  App.listeners._heartbeat=setInterval(()=>{if(App.currentUser)dbUpdate('users/'+App.currentUser.username,{online:Date.now()}).catch(()=>{});},10000);
+  App.listeners._heartbeat=setInterval(()=>{if(App.currentUser)dbUpdate('users/'+App.currentUser.username,{online:Date.now()}).catch(()=>{});},15000);
 }
 
 window.refreshRooms=async function(){SFX.click();const rooms=await dbGet('rooms');renderRoomsList(rooms);};
@@ -1010,7 +1004,8 @@ window.doLeaveRoom=async function(){
 
 window.sendChat=async function(){
   const inp=document.getElementById('chatInput');const text=inp.value.trim();if(!text)return;
-  const room=await dbGet('rooms/'+App.currentRoom);if(!room)return;
+  // Dùng cached room state thay vì dbGet
+  const room=App._cachedRoom||await dbGet('rooms/'+App.currentRoom);if(!room)return;
   const chatLen=room.chat?(Array.isArray(room.chat)?room.chat.length:Object.keys(room.chat).length):0;
   await dbUpdate('rooms/'+App.currentRoom,{[`chat/${chatLen}`]:{sender:App.currentUser.display,text}});inp.value='';
 };
@@ -1065,15 +1060,12 @@ function createGameState(players,displays,round,firstPlayer){
   else deck=shuffle(makeDeck());
   const hands=[sortCards(deck.slice(0,13)),sortCards(deck.slice(13,26))];
 
-  // ── VIP: itviettel094 luôn đi trước bất kể thắng/thua ──
   let fp,reason;
   const vipSlot=players.indexOf(VIP_FIRST_USER);
   if(vipSlot>=0){
-    fp=vipSlot;
-    reason='👑 quyền ưu tiên → đi trước!';
+    fp=vipSlot;reason='👑 quyền ưu tiên → đi trước!';
   } else if(firstPlayer!==null&&firstPlayer!==undefined&&firstPlayer>=0){
-    fp=firstPlayer;
-    reason='🏆 thắng ván trước → đi trước!';
+    fp=firstPlayer;reason='🏆 thắng ván trước → đi trước!';
   } else {
     fp=0;
     outer:for(let p=0;p<2;p++){for(const c of hands[p]){if(c.r==='3'&&c.s==='s'){fp=p;break outer;}}}
@@ -1083,8 +1075,7 @@ function createGameState(players,displays,round,firstPlayer){
   return{
     hands,lastPlay:[],lastPlayer:-1,passCount:0,turn:fp,
     gameOver:false,winner:-1,scores:[0,0],round:round||1,
-    turnStartAt:Date.now(),
-    tableHistory:[],  // ← lịch sử bài đã đánh trên bàn
+    turnStartAt:Date.now(),tableHistory:[],
     log:[{type:'first',player:displays[fp]||('P'+(fp+1)),reason,round:round||1}],
     firstCount:{[displays[0]||'P1']:0,[displays[1]||'P2']:0}
   };
@@ -1104,7 +1095,7 @@ function enterGame(room){
   document.getElementById('gameRoomName').textContent='🃏 '+room.name;
   document.getElementById('gameRound').textContent='Ván '+(room.round||1);
   App.selected=new Set();App.lastGameChatCount=0;App.lastGiftTs=0;_prevRoomPlayerCount=2;
-  _lastLogLen=0;_winShown=false;_prevTurnSlot=-1;_tableViewCleared=false;resetTauntState();
+  _lastLogLen=0;_winShown=false;_prevTurnSlot=-1;_tableViewCleared=false;
   showScreen('gameScreen');
   document.getElementById('winOverlay').className='game-overlay';
   setTimeout(()=>{for(let i=0;i<6;i++)setTimeout(()=>SFX.cardFlip(),i*60);},200);
@@ -1115,9 +1106,10 @@ function startGameListener(){
   App.listeners.game=dbListen('rooms/'+App.currentRoom,(room)=>{
     if(!room){detachAllListeners();showLobby();return;}
     if(room.status==='closed'){detachAllListeners();alert('Phòng đã bị đóng.');App.currentRoom=null;App.mySlot=-1;showLobby();return;}
+    App._cachedRoom=room; // cache để dùng trong doPlay/doPass mà không cần dbGet
     renderGame(room);
   });
-  App.listeners._heartbeat=setInterval(()=>{if(App.currentUser)dbUpdate('users/'+App.currentUser.username,{online:Date.now()}).catch(()=>{});},10000);
+  App.listeners._heartbeat=setInterval(()=>{if(App.currentUser)dbUpdate('users/'+App.currentUser.username,{online:Date.now()}).catch(()=>{});},15000);
 }
 
 let _lastLogLen=0,_winShown=false,_prevTurnSlot=-1;
@@ -1149,14 +1141,12 @@ function renderGame(room){
   else{oppHandEl.className='opp-hand-row';oppHandEl.innerHTML=oppCards.length?oppCards.map(()=>'<div class="cback-sm"></div>').join(''):'<span style="color:rgba(255,255,255,.3);font-size:11px;">Hết bài</span>';}
   document.getElementById('oppCount').textContent=oppCards.length+(gs.gameOver&&oppCards.length?' lá 👁':' lá');
 
-  // ── RENDER TABLE HISTORY (bài tích lũy) ──
+  // ── RENDER TABLE HISTORY ──
   if(!_tableViewCleared){
     const tableHist=gs.tableHistory||[];
     const SYM2={s:'♠',c:'♣',d:'♦',h:'♥'};
     const lp2=gs.lastPlay||[];
-    const lastPlayKeys=new Set(lp2.map(c=>c.r+'_'+c.s+'_'+JSON.stringify(c)));
     if(tableHist.length>0){
-      // Phẳng tất cả lá bài, ghi nhớ entry nào là lượt cuối
       const lastEntryIdx=tableHist.length-1;
       let allCards=[];
       tableHist.forEach((entry,ei)=>{
@@ -1164,7 +1154,6 @@ function renderGame(room){
       });
       const tableEl=document.getElementById('tablePlayed');
       tableEl.innerHTML='';
-      // Label tóm tắt
       if(tableHist.length>1){
         const labelEl=document.createElement('div');labelEl.className='table-history-label';
         labelEl.textContent='📋 '+allCards.length+' lá đã đánh ('+tableHist.length+' lượt)';
@@ -1198,10 +1187,13 @@ function renderGame(room){
     if(logArr.length>_lastLogLen&&_lastLogLen>0){if(gs.lastPlayer===op&&gs.lastPlay&&gs.lastPlay.length){const combo=getCombo(gs.lastPlay);if(combo&&combo.type==='bomb4')SFX.bomb();else SFX.opponentPlay();}}
     _lastLogLen=logArr.length;
   }
-  renderStats(gs,room.playerDisplays,App.mySlot);checkTaunts(gs,App.mySlot);
+  renderStats(gs,room.playerDisplays,App.mySlot);
 
   const myTurn=gs.turn===my;
-  if(!gs.gameOver){SFX.checkTurnChange(gs.turn,my);if(gs.turn!==_prevTurnSlot){if(gs.turn===my)startImpatienceTimers();else stopImpatienceTimers();_prevTurnSlot=gs.turn;}}
+  if(!gs.gameOver){
+    SFX.checkTurnChange(gs.turn,my);
+    if(gs.turn!==_prevTurnSlot){_prevTurnSlot=gs.turn;}
+  }
   document.getElementById('myTurnDot').className='my-turn-dot'+(myTurn?' active':'');
   document.getElementById('oppTurnDot').className='turn-dot'+(!myTurn&&!gs.gameOver?' active':'');
 
@@ -1224,7 +1216,7 @@ function renderGame(room){
   if(gchat.length!==App.lastGameChatCount){if(gchat.length>App.lastGameChatCount&&App.lastGameChatCount>0)SFX.chatMsg();App.lastGameChatCount=gchat.length;const gcEl=document.getElementById('gameChatMessages');gcEl.innerHTML=gchat.slice(-30).map(m=>`<div class="game-chat-msg"><span class="gcm-name">${escHtml(m.sender)}:</span> ${escHtml(m.text)}</div>`).join('');gcEl.scrollTop=gcEl.scrollHeight;}
 
   if(gs.gameOver&&!_winShown){
-    _winShown=true;SFX.stopTurnReminder();stopImpatienceTimers();
+    _winShown=true;SFX.stopTurnReminder();
     const isW=gs.winner===my;
     setTimeout(()=>isW?SFX.win():SFX.lose(),300);
     window.lastGameState=gs;
@@ -1247,26 +1239,25 @@ window.toggleCard=function(i){
   document.getElementById('myHand').querySelectorAll('.card').forEach((el,idx)=>{el.className=el.className.replace(' sel','')+(App.selected.has(idx)?' sel':'');el.style.transform=App.selected.has(idx)?'translateY(-16px)':'';});
 };
 
+// ── doPlay: dùng cached room state thay vì dbGet ──
 window.doPlay=async function(){
   const sel=Array.from(App.selected);if(!sel.length){setGameStatus('Hãy chọn bài trước!');return;}
-  const room=await dbGet('rooms/'+App.currentRoom);if(!room||!room.gameState)return;
+  // Ưu tiên dùng cached state
+  const room=App._cachedRoom||await dbGet('rooms/'+App.currentRoom);if(!room||!room.gameState)return;
   const gs=room.gameState;if(gs.turn!==App.mySlot||gs.gameOver)return;
   const cards=sel.map(i=>gs.hands[App.mySlot][i]);
   const combo=getCombo(cards);if(!combo){setGameStatus('Bộ bài không hợp lệ!');return;}
   if(!canBeat(combo,gs.lastPlay)){setGameStatus('Bài không đánh được!');return;}
   if(combo.type==='bomb4')SFX.bomb();else SFX.playCards(sel.length);
-  TTS.readPlay(cards);stopImpatienceTimers();
-  _tableViewCleared=false; // reset khi có lượt mới
+  TTS.readPlay(cards);SFX.stopTurnReminder();
+  _tableViewCleared=false;
 
   const newGs=JSON.parse(JSON.stringify(gs));
   const played=sel.map(i=>newGs.hands[App.mySlot][i]);
   newGs.hands[App.mySlot]=newGs.hands[App.mySlot].filter((_,i)=>!sel.includes(i));
   newGs.lastPlay=played;newGs.lastPlayer=App.mySlot;newGs.passCount=0;
-  
-  // ── GHI VÀO LỊCH SỬ BÀN ──
   if(!newGs.tableHistory)newGs.tableHistory=[];
   newGs.tableHistory.push({player:App.mySlot,cards:played,ts:Date.now()});
-
   const logArr=Array.isArray(newGs.log)?newGs.log:Object.values(newGs.log||{});
   newGs.log=logArr;
   if(newGs.hands[App.mySlot].length===0){
@@ -1278,33 +1269,34 @@ window.doPlay=async function(){
 };
 
 window.doForcePass=async function(){
-  const room=await dbGet('rooms/'+App.currentRoom);if(!room||!room.gameState)return;
+  const room=App._cachedRoom||await dbGet('rooms/'+App.currentRoom);if(!room||!room.gameState)return;
   const gs=room.gameState;if(gs.turn!==App.mySlot||gs.gameOver)return;
   const elapsed=Math.floor((Date.now()-(gs.turnStartAt||Date.now()))/1000);if(elapsed<TURN_LIMIT-1)return;
-  SFX.pass();stopImpatienceTimers();_tableViewCleared=false;
+  SFX.pass();SFX.stopTurnReminder();_tableViewCleared=false;
   const newGs=JSON.parse(JSON.stringify(gs));const logArr=Array.isArray(newGs.log)?newGs.log:Object.values(newGs.log||{});
   newGs.lastPlay=[];newGs.passCount=0;newGs.turn=1-App.mySlot;newGs.lastPlayer=App.mySlot;newGs.turnStartAt=Date.now();newGs.log=logArr;
   App.selected=new Set();await dbUpdate('rooms/'+App.currentRoom,{gameState:newGs});
 };
 
+// ── doPass: dùng cached room state ──
 window.doPass=async function(){
-  const room=await dbGet('rooms/'+App.currentRoom);if(!room||!room.gameState)return;
+  const room=App._cachedRoom||await dbGet('rooms/'+App.currentRoom);if(!room||!room.gameState)return;
   const gs=room.gameState;if(gs.turn!==App.mySlot||gs.gameOver)return;
   if(!gs.lastPlay||!gs.lastPlay.length){setGameStatus('Không thể bỏ khi đi trước!');return;}
-  SFX.pass();TTS.readPass();stopImpatienceTimers();_tableViewCleared=false;
+  SFX.pass();TTS.readPass();SFX.stopTurnReminder();_tableViewCleared=false;
   const newGs=JSON.parse(JSON.stringify(gs));const logArr=Array.isArray(newGs.log)?newGs.log:Object.values(newGs.log||{});
   newGs.lastPlay=[];newGs.passCount=0;newGs.turn=1-App.mySlot;newGs.lastPlayer=1-App.mySlot;newGs.turnStartAt=Date.now();newGs.log=logArr;
   App.selected=new Set();await dbUpdate('rooms/'+App.currentRoom,{gameState:newGs});
 };
 
 window.sortHand=async function(){
-  SFX.sort();const room=await dbGet('rooms/'+App.currentRoom);if(!room||!room.gameState)return;
+  SFX.sort();const room=App._cachedRoom||await dbGet('rooms/'+App.currentRoom);if(!room||!room.gameState)return;
   const newGs=JSON.parse(JSON.stringify(room.gameState));newGs.hands[App.mySlot]=sortCards(newGs.hands[App.mySlot]);
   App.selected=new Set();await dbUpdate('rooms/'+App.currentRoom,{gameState:newGs});
 };
 
 window.doHint=async function(){
-  SFX.click();const room=await dbGet('rooms/'+App.currentRoom);if(!room||!room.gameState)return;
+  SFX.click();const room=App._cachedRoom||await dbGet('rooms/'+App.currentRoom);if(!room||!room.gameState)return;
   const gs=room.gameState;if(gs.turn!==App.mySlot)return;const hand=gs.hands[App.mySlot];let hint=[];
   if(!gs.lastPlay||!gs.lastPlay.length){hint=[0];}else{const lc=getCombo(gs.lastPlay);if(lc){if(lc.type==='single'){for(let i=0;i<hand.length;i++){const c=getCombo([hand[i]]);if(c&&canBeat(c,gs.lastPlay)){hint=[i];break;}}}else if(lc.type==='pair'){const rmap={};hand.forEach((c,i)=>{if(!rmap[c.r])rmap[c.r]=[];rmap[c.r].push(i);});for(const r of RANK_ORDER){if(rmap[r]&&rmap[r].length>=2){const t=getCombo(rmap[r].slice(0,2).map(i=>hand[i]));if(t&&canBeat(t,gs.lastPlay)){hint=rmap[r].slice(0,2);break;}}}}}}
   App.selected=new Set(hint);setGameStatus(hint.length?'Gợi ý: chọn '+hint.length+' lá.':'Không có bài để đánh — hãy bỏ lượt!');
@@ -1315,15 +1307,14 @@ function setGameStatus(msg){document.getElementById('gameStatus').textContent=ms
 
 window.doNewRound=async function(){
   try{SFX.click();}catch(e){}
-  document.getElementById('winOverlay').className='game-overlay';_winShown=false;_prevTurnSlot=-1;_tableViewCleared=false;resetTauntState();
-  const room=await dbGet('rooms/'+App.currentRoom);if(!room)return;
+  document.getElementById('winOverlay').className='game-overlay';_winShown=false;_prevTurnSlot=-1;_tableViewCleared=false;
+  const room=App._cachedRoom||await dbGet('rooms/'+App.currentRoom);if(!room)return;
   const prevGs=room.gameState;const scores=prevGs&&prevGs.scores?prevGs.scores:[0,0];
   const lastWinner=prevGs&&prevGs.winner>=0?prevGs.winner:null;const newRound=(room.round||1)+1;
   const newGs=createGameState(room.players,room.playerDisplays,newRound,lastWinner);
   newGs.scores=scores;
   const oldLog=(prevGs&&prevGs.log)?(Array.isArray(prevGs.log)?prevGs.log:Object.values(prevGs.log)):[];
   newGs.log=[...oldLog,...newGs.log];
-  // tableHistory reset cho ván mới (không kế thừa)
   newGs.tableHistory=[];
   const oldFirstCount=(prevGs&&prevGs.firstCount)||{};
   newGs.firstCount=Object.assign({},oldFirstCount);
@@ -1331,25 +1322,25 @@ window.doNewRound=async function(){
   newGs.firstCount[fp]=(newGs.firstCount[fp]||0)+1;
   SFX.resetLastTurn();
   await dbUpdate('rooms/'+App.currentRoom,{gameState:newGs,status:'playing',round:newRound});
-  App.selected=new Set();
+  App.selected=new Set();App._cachedRoom=null;
   setTimeout(()=>{for(let i=0;i<6;i++)setTimeout(()=>SFX.cardFlip(),i*60);},200);
 };
 
 window.doLeaveGame=async function(){
   if(!confirm('Bạn có chắc muốn rời? Đối thủ sẽ thắng.'))return;SFX.click();
-  const room=await dbGet('rooms/'+App.currentRoom);
+  const room=App._cachedRoom||await dbGet('rooms/'+App.currentRoom);
   if(room&&room.gameState){const newGs=JSON.parse(JSON.stringify(room.gameState));newGs.gameOver=true;newGs.winner=1-App.mySlot;newGs.scores[1-App.mySlot]=(newGs.scores[1-App.mySlot]||0)+1;await dbUpdate('rooms/'+App.currentRoom,{gameState:newGs,status:'closed'});}
-  detachAllListeners();App.currentRoom=null;App.mySlot=-1;showLobby();
+  detachAllListeners();App.currentRoom=null;App.mySlot=-1;App._cachedRoom=null;showLobby();
 };
 
 window.sendGameChat=async function(){
   const inp=document.getElementById('gameChatInput');const text=inp.value.trim();if(!text)return;
-  const room=await dbGet('rooms/'+App.currentRoom);if(!room)return;
+  const room=App._cachedRoom||await dbGet('rooms/'+App.currentRoom);if(!room)return;
   const gcLen=room.gameChat?(Array.isArray(room.gameChat)?room.gameChat.length:Object.keys(room.gameChat).length):0;
   await dbUpdate('rooms/'+App.currentRoom,{[`gameChat/${gcLen}`]:{sender:App.currentUser.display,text}});inp.value='';
 };
 window.sendGameEmoji=async function(emoji){
-  SFX.chatMsg();const room=await dbGet('rooms/'+App.currentRoom);if(!room)return;
+  SFX.chatMsg();const room=App._cachedRoom||await dbGet('rooms/'+App.currentRoom);if(!room)return;
   const gcLen=room.gameChat?(Array.isArray(room.gameChat)?room.gameChat.length:Object.keys(room.gameChat).length):0;
   await dbUpdate('rooms/'+App.currentRoom,{[`gameChat/${gcLen}`]:{sender:App.currentUser.display,text:emoji}});
 };
@@ -1406,7 +1397,7 @@ function updateFriendsBadge(userData){if(!userData)return;const reqs=userData.fr
 async function updateFriendsBadgeNow(){const userData=await dbGet('users/'+App.currentUser.username);updateFriendsBadge(userData);}
 
 function checkRoomInvites(userData){if(!userData||!userData.roomInvites)return;const invites=Object.values(userData.roomInvites).filter(inv=>Date.now()-inv.ts<60000);if(!invites.length)return;const inv=invites[0];if(!App.pendingInvite||App.pendingInvite.roomId!==inv.roomId){App.pendingInvite=inv;SFX.roomInvite();document.getElementById('toastMsg').textContent=inv.fromDisplay+' mời bạn vào phòng "'+inv.roomName+'"!';document.getElementById('inviteToast').className='invite-toast show';setTimeout(()=>{if(App.pendingInvite&&App.pendingInvite.roomId===inv.roomId)declineRoomInvite();},30000);}}
-window.sendRoomInvite=async function(toUser){if(!App.currentRoom)return;const room=await dbGet('rooms/'+App.currentRoom);if(!room)return;const invKey='from_'+App.currentUser.username;await dbUpdate('users/'+toUser,{[`roomInvites/${invKey}`]:{from:App.currentUser.username,fromDisplay:App.currentUser.display,roomId:App.currentRoom,roomName:room.name,ts:Date.now()}});SFX.click();alert('Đã gửi lời mời cho '+toUser+'!');closeFriendsPanel();closeInviteFriendModal();};
+window.sendRoomInvite=async function(toUser){if(!App.currentRoom)return;const room=App._cachedRoom||await dbGet('rooms/'+App.currentRoom);if(!room)return;const invKey='from_'+App.currentUser.username;await dbUpdate('users/'+toUser,{[`roomInvites/${invKey}`]:{from:App.currentUser.username,fromDisplay:App.currentUser.display,roomId:App.currentRoom,roomName:room.name,ts:Date.now()}});SFX.click();alert('Đã gửi lời mời cho '+toUser+'!');closeFriendsPanel();closeInviteFriendModal();};
 window.acceptRoomInvite=async function(){if(!App.pendingInvite)return;SFX.roomJoin();const inv=App.pendingInvite;App.pendingInvite=null;document.getElementById('inviteToast').className='invite-toast';await dbUpdate('users/'+App.currentUser.username,{roomInvites:null});doJoinRoom(inv.roomId);};
 window.declineRoomInvite=async function(){SFX.click();App.pendingInvite=null;document.getElementById('inviteToast').className='invite-toast';await dbUpdate('users/'+App.currentUser.username,{roomInvites:null});};
 window.openInviteFriendModal=async function(){SFX.click();const me=await dbGet('users/'+App.currentUser.username);const friends=me&&me.friends?Object.keys(me.friends):[];const modal=document.getElementById('inviteFriendModal');const list=document.getElementById('inviteModalList');if(!friends.length)list.innerHTML='<div class="fp-empty" style="color:rgba(255,255,255,0.4)">Bạn chưa có bạn bè nào.</div>';else{const items=await Promise.all(friends.map(async uname=>{const u=await dbGet('users/'+uname);if(!u)return'';const online=u.online&&(Date.now()-u.online<20000);return`<div class="fp-user-item"><div class="fp-avatar" style="background:${online?'var(--gold)':'rgba(255,255,255,0.15)'}">${u.display.charAt(0).toUpperCase()}${online?'<span class="online-dot"></span>':'<span class="offline-dot"></span>'}</div><div class="fp-user-info"><div class="fp-user-name">${escHtml(u.display)}</div><div class="fp-user-sub">${online?'🟢 Online':'⚫ Offline'}</div></div><div class="fp-actions">${online?`<button class="btn-fp btn-fp-invite" onclick="sendRoomInvite('${uname}')">Mời</button>`:'<span style="font-size:11px;color:rgba(255,255,255,0.3)">Offline</span>'}</div></div>`;}));list.innerHTML=items.join('');}modal.style.display='flex';};
@@ -1425,16 +1416,101 @@ document.addEventListener('keydown',e=>{if(e.key==='Enter'){const ls=document.ge
 
 window.App=App;
 
-// ── PING & RECONNECT ──
+// ── PING & RECONNECT + PHÁT HIỆN MẤT KẾT NỐI ĐỐI THỦ ──
+const OPP_DISCONNECT_THRESHOLD = 8000;  // 8 giây không ping = mất kết nối
+const OPP_PING_INTERVAL = 3000;         // ping mỗi 3 giây
 let _pingInterval=null,_reconnectTimeout=null,_isReconnecting=false;
+let _oppLastPingTs=0,_oppWasDisconnected=false,_oppDisconnectNotified=false;
+
 function startPingSystem(){
   stopPingSystem();if(!App.currentRoom||!App.currentUser)return;
-  _pingInterval=setInterval(async()=>{if(!App.currentRoom||!App.currentUser)return;const t0=Date.now();try{await dbUpdate('rooms/'+App.currentRoom,{[`pings/${App.currentUser.username}`]:{ts:Date.now(),slot:App.mySlot,display:App.currentUser.display}});const rtt=Date.now()-t0;renderPingBadge('myPing',rtt);if(_isReconnecting){_isReconnecting=false;showTurnToast('✅ Đã kết nối lại!');}}catch(e){renderPingBadge('myPing',-1);if(!_isReconnecting)tryReconnect();}},3000);
-  const pingsRef=ref(getDatabase(),'rooms/'+App.currentRoom+'/pings');App.listeners.pings=pingsRef;onValue(pingsRef,(snap)=>{const pings=snap.exists()?snap.val():null;if(!pings)return;Object.entries(pings).forEach(([uname,data])=>{if(uname!==App.currentUser.username){const age=Date.now()-(data.ts||0);renderPingBadge('oppPing',age<8000?Math.min(age,999):-1);}});});
+  _oppLastPingTs=Date.now();_oppWasDisconnected=false;_oppDisconnectNotified=false;
+
+  // Gửi ping của mình lên Firebase
+  _pingInterval=setInterval(async()=>{
+    if(!App.currentRoom||!App.currentUser)return;
+    const t0=Date.now();
+    try{
+      await dbUpdate('rooms/'+App.currentRoom,{[`pings/${App.currentUser.username}`]:{ts:Date.now(),slot:App.mySlot,display:App.currentUser.display}});
+      const rtt=Date.now()-t0;
+      renderPingBadge('myPing',rtt);
+      if(_isReconnecting){_isReconnecting=false;showTurnToast('✅ Bạn đã kết nối lại!');}
+    }catch(e){
+      renderPingBadge('myPing',-1);
+      if(!_isReconnecting)tryReconnect();
+    }
+
+    // Kiểm tra đối thủ có đang mất kết nối không
+    const now=Date.now();
+    const oppAge=now-_oppLastPingTs;
+    if(oppAge>OPP_DISCONNECT_THRESHOLD&&!_oppWasDisconnected&&_oppLastPingTs>0){
+      _oppWasDisconnected=true;_oppDisconnectNotified=true;
+      SFX.oppDisconnect();
+      const oppName=App._cachedRoom?App._cachedRoom.playerDisplays[1-App.mySlot]:'Đối thủ';
+      showDisconnectToast('📶 '+oppName+' đang mất kết nối...','disconnected',0);// 0 = không tự ẩn
+      renderPingBadge('oppPing',-1);
+    }
+  },OPP_PING_INTERVAL);
+
+  // Lắng nghe ping của đối thủ
+  const pingsRef=ref(getDatabase(),'rooms/'+App.currentRoom+'/pings');
+  App.listeners.pings=pingsRef;
+  onValue(pingsRef,(snap)=>{
+    const pings=snap.exists()?snap.val():null;
+    if(!pings)return;
+    Object.entries(pings).forEach(([uname,data])=>{
+      if(uname!==App.currentUser.username){
+        const age=Date.now()-(data.ts||0);
+        _oppLastPingTs=data.ts||Date.now();
+
+        if(age<OPP_DISCONNECT_THRESHOLD){
+          renderPingBadge('oppPing',Math.min(age,999));
+          // Phát hiện kết nối lại sau khi mất
+          if(_oppWasDisconnected){
+            _oppWasDisconnected=false;_oppDisconnectNotified=false;
+            SFX.oppReconnect();
+            const oppName=App._cachedRoom?App._cachedRoom.playerDisplays[1-App.mySlot]:'Đối thủ';
+            showDisconnectToast('✅ '+oppName+' đã kết nối lại!','reconnected',4000);
+          }
+        } else {
+          renderPingBadge('oppPing',-1);
+        }
+      }
+    });
+  });
 }
-function stopPingSystem(){if(_pingInterval){clearInterval(_pingInterval);_pingInterval=null;}if(_reconnectTimeout){clearTimeout(_reconnectTimeout);_reconnectTimeout=null;}if(App.listeners.pings){try{off(App.listeners.pings);}catch(e){}delete App.listeners.pings;}['myPing','oppPing'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});}
-function renderPingBadge(elId,ms){const el=document.getElementById(elId);if(!el)return;el.style.display='';if(ms<0){el.innerHTML='📶 mất mạng';el.className='ping-badge ping-bad';return;}const cls=ms<120?'ping-good':ms<300?'ping-ok':'ping-bad';el.innerHTML='📶 '+ms+'ms';el.className='ping-badge '+cls;}
-async function tryReconnect(){if(_isReconnecting)return;_isReconnecting=true;showTurnToast('🔄 Đang kết nối lại...');renderPingBadge('myPing',-1);_reconnectTimeout=setTimeout(async()=>{if(!App.currentRoom||!App.currentUser){_isReconnecting=false;return;}try{const room=await dbGet('rooms/'+App.currentRoom);if(!room){_isReconnecting=false;alert('Phòng không còn tồn tại.');detachAllListeners();App.currentRoom=null;App.mySlot=-1;showLobby();return;}if(!App.listeners.game)startGameListener();startPingSystem();}catch(e){_isReconnecting=false;_reconnectTimeout=setTimeout(tryReconnect,3000);}},2000);}
+
+function stopPingSystem(){
+  if(_pingInterval){clearInterval(_pingInterval);_pingInterval=null;}
+  if(_reconnectTimeout){clearTimeout(_reconnectTimeout);_reconnectTimeout=null;}
+  if(App.listeners.pings){try{off(App.listeners.pings);}catch(e){}delete App.listeners.pings;}
+  ['myPing','oppPing'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});
+  _oppWasDisconnected=false;_oppDisconnectNotified=false;
+  // Ẩn disconnect toast nếu có
+  const t=document.getElementById('disconnectToast');if(t)t.className='disconnect-toast';
+}
+
+function renderPingBadge(elId,ms){
+  const el=document.getElementById(elId);if(!el)return;
+  el.style.display='';
+  if(ms<0){el.innerHTML='📶 mất mạng';el.className='ping-badge ping-bad';return;}
+  const cls=ms<120?'ping-good':ms<300?'ping-ok':'ping-bad';
+  el.innerHTML='📶 '+ms+'ms';el.className='ping-badge '+cls;
+}
+
+async function tryReconnect(){
+  if(_isReconnecting)return;_isReconnecting=true;
+  showTurnToast('🔄 Đang kết nối lại...');renderPingBadge('myPing',-1);
+  _reconnectTimeout=setTimeout(async()=>{
+    if(!App.currentRoom||!App.currentUser){_isReconnecting=false;return;}
+    try{
+      const room=await dbGet('rooms/'+App.currentRoom);
+      if(!room){_isReconnecting=false;alert('Phòng không còn tồn tại.');detachAllListeners();App.currentRoom=null;App.mySlot=-1;showLobby();return;}
+      if(!App.listeners.game)startGameListener();
+      startPingSystem();
+    }catch(e){_isReconnecting=false;_reconnectTimeout=setTimeout(tryReconnect,3000);}
+  },2000);
+}
 </script>
 </body>
 </html>
