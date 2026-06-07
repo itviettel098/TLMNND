@@ -1036,9 +1036,15 @@ function getCombo(cards){
   if(n===1)return{type:'single',val:maxVal};
   if(n===2){if(ranks[0]===ranks[1])return{type:'pair',val:maxVal};return null;}
   if(n===3){const ri=sorted.map(c=>RANK_ORDER.indexOf(c.r));if(ranks[0]===ranks[1]&&ranks[1]===ranks[2])return{type:'triple',val:maxVal};if(!ranks.includes('2')&&ri[1]-ri[0]===1&&ri[2]-ri[1]===1)return{type:'seq',val:maxVal,len:3};return null;}
-  if(n===4){const rc={};ranks.forEach(r=>rc[r]=(rc[r]||0)+1);const ukeys=Object.keys(rc);if(ukeys.length===1)return{type:'bomb4',val:maxVal};if(ukeys.length===2&&ukeys.every(r=>rc[r]===2)&&!ranks.includes('2')){const pr=ukeys.map(r=>RANK_ORDER.indexOf(r)).sort((a,b)=>a-b);if(pr[1]-pr[0]===1)return{type:'dseq',val:maxVal,len:4,pairs:2};}if(!ranks.includes('2')){const ri=sorted.map(c=>RANK_ORDER.indexOf(c.r));if(new Set(ri).size===4){let seq=true;for(let i=1;i<ri.length;i++)if(ri[i]-ri[i-1]!==1){seq=false;break;}if(seq)return{type:'seq',val:maxVal,len:4};}}return null;}
+  if(n===4){const rc={};ranks.forEach(r=>rc[r]=(rc[r]||0)+1);const ukeys=Object.keys(rc);
+    if(ukeys.length===1)return{type:'bomb4',val:maxVal};
+    if(ukeys.length===2&&ukeys.every(r=>rc[r]===2)&&!ranks.includes('2')){const pr=ukeys.map(r=>RANK_ORDER.indexOf(r)).sort((a,b)=>a-b);if(pr[1]-pr[0]===1)return{type:'dseq',val:maxVal,len:4,pairs:2};}
+    if(ukeys.length===2&&ukeys.every(r=>rc[r]===2)&&!ranks.includes('2'))return{type:'multipair',val:maxVal,pairs:2};
+    if(!ranks.includes('2')){const ri=sorted.map(c=>RANK_ORDER.indexOf(c.r));if(new Set(ri).size===4){let seq=true;for(let i=1;i<ri.length;i++)if(ri[i]-ri[i-1]!==1){seq=false;break;}if(seq)return{type:'seq',val:maxVal,len:4};}}
+    return null;}
   if(!ranks.includes('2')){const ri=sorted.map(c=>RANK_ORDER.indexOf(c.r));if(new Set(ri).size===n){let seq=true;for(let i=1;i<ri.length;i++)if(ri[i]-ri[i-1]!==1){seq=false;break;}if(seq)return{type:'seq',val:maxVal,len:n};}}
   if(n>=6&&n%2===0&&!ranks.includes('2')){const rc={};sorted.forEach(c=>rc[c.r]=(rc[c.r]||0)+1);const ukeys=Object.keys(rc);const numPairs=n/2;if(ukeys.length===numPairs&&ukeys.every(r=>rc[r]===2)){const pr=ukeys.map(r=>RANK_ORDER.indexOf(r)).sort((a,b)=>a-b);let consec=true;for(let i=1;i<pr.length;i++)if(pr[i]-pr[i-1]!==1){consec=false;break;}if(consec)return{type:'dseq',val:maxVal,len:n,pairs:numPairs};}}
+  if(n>=4&&n%2===0&&!ranks.includes('2')){const rc={};sorted.forEach(c=>rc[c.r]=(rc[c.r]||0)+1);const ukeys=Object.keys(rc);const numPairs=n/2;if(ukeys.length===numPairs&&ukeys.every(r=>rc[r]===2))return{type:'multipair',val:maxVal,pairs:numPairs};}
   return null;
 }
 window.getCombo=getCombo;
@@ -1049,6 +1055,9 @@ function canBeat(combo,lastPlay){
   if(lc.type==='bomb4')return false;
   if(combo.type==='dseq'&&combo.pairs>=3&&lc.type==='single'&&lastPlay[0].r==='2')return true;
   if(combo.type==='dseq'&&combo.pairs>=4&&lc.type==='pair'&&lastPlay[0].r==='2')return true;
+  if(combo.type==='multipair'&&lc.type==='multipair')return combo.pairs===lc.pairs&&combo.val>lc.val;
+  if(combo.type==='multipair'&&lc.type!=='multipair')return false;
+  if(lc.type==='multipair'&&combo.type!=='multipair')return false;
   if(combo.type!==lc.type)return false;if(combo.len&&lc.len&&combo.len!==lc.len)return false;if(combo.type==='dseq'&&combo.pairs!==lc.pairs)return false;
   return combo.val>lc.val;
 }
@@ -1218,12 +1227,14 @@ function renderGame(room){
   if(gs.gameOver&&!_winShown){
     _winShown=true;SFX.stopTurnReminder();
     const isW=gs.winner===my;
-    setTimeout(()=>isW?SFX.win():SFX.lose(),300);
+    const myN=room.playerDisplays[my]||'Bạn';
+    const oppN=room.playerDisplays[op]||'Đối thủ';
+    const winnerName=isW?myN:oppN;
+    setTimeout(()=>{if(isW){SFX.win();speakVi(myN+' thắng rồi! Chúc mừng '+myN+'!',400);}else{SFX.lose();speakVi(winnerName+' thắng! '+myN+' thua rồi, cố lên!',400);}},300);
     window.lastGameState=gs;
     document.getElementById('winIcon').textContent=isW?'🏆':'😔';
-    document.getElementById('winTitle').textContent=isW?'BẠN THẮNG!':'Thua rồi!';
-    const oppN=room.playerDisplays[op]||'Đối thủ';
-    document.getElementById('winMsg').textContent=isW?'Chúc mừng! Bạn đã thắng '+oppN+'!':oppN+' đã thắng. Cố lên!';
+    document.getElementById('winTitle').textContent=isW?('🏆 '+myN+' THẮNG!'):('😔 '+oppN+' thắng!');
+    document.getElementById('winMsg').textContent=isW?'Chúc mừng '+myN+'! Bạn đã thắng '+oppN+'!':oppN+' đã thắng. '+myN+' cố lên nhé!';
     const oppRemaining=gs.hands[op]||[];const reviewSection=document.getElementById('oppReviewSection');const reviewCards=document.getElementById('oppReviewCardsInOverlay');const reviewStats=document.getElementById('oppReviewStatsInOverlay');
     if(oppRemaining.length>0){reviewSection.style.display='';reviewCards.innerHTML=oppRemaining.map(c=>cardHTML(c,-1,false)).join('');const twos=oppRemaining.filter(c=>c.r==='2').length;const aces=oppRemaining.filter(c=>c.r==='A').length;reviewStats.innerHTML=`<strong>${oppRemaining.length} lá còn lại</strong>${twos?' · '+twos+' Heo':''}${aces?' · '+aces+' Át':''}`;}
     else reviewSection.style.display='none';
@@ -1297,10 +1308,43 @@ window.sortHand=async function(){
 
 window.doHint=async function(){
   SFX.click();const room=App._cachedRoom||await dbGet('rooms/'+App.currentRoom);if(!room||!room.gameState)return;
-  const gs=room.gameState;if(gs.turn!==App.mySlot)return;const hand=gs.hands[App.mySlot];let hint=[];
-  if(!gs.lastPlay||!gs.lastPlay.length){hint=[0];}else{const lc=getCombo(gs.lastPlay);if(lc){if(lc.type==='single'){for(let i=0;i<hand.length;i++){const c=getCombo([hand[i]]);if(c&&canBeat(c,gs.lastPlay)){hint=[i];break;}}}else if(lc.type==='pair'){const rmap={};hand.forEach((c,i)=>{if(!rmap[c.r])rmap[c.r]=[];rmap[c.r].push(i);});for(const r of RANK_ORDER){if(rmap[r]&&rmap[r].length>=2){const t=getCombo(rmap[r].slice(0,2).map(i=>hand[i]));if(t&&canBeat(t,gs.lastPlay)){hint=rmap[r].slice(0,2);break;}}}}}}
-  App.selected=new Set(hint);setGameStatus(hint.length?'Gợi ý: chọn '+hint.length+' lá.':'Không có bài để đánh — hãy bỏ lượt!');
-  document.getElementById('myHand').querySelectorAll('.card').forEach((el,idx)=>{el.className=el.className.replace(' sel','')+(App.selected.has(idx)?' sel':'');});
+  const gs=room.gameState;if(gs.turn!==App.mySlot)return;
+  const hand=gs.hands[App.mySlot];const lastPlay=gs.lastPlay||[];
+
+  function findAllCombos(hand,targetType,targetLen,targetPairs){
+    const results=[];
+    if(targetType==='single'){hand.forEach((_,i)=>results.push([i]));}
+    else if(targetType==='pair'){for(let i=0;i<hand.length-1;i++)for(let j=i+1;j<hand.length;j++)if(hand[i].r===hand[j].r)results.push([i,j]);}
+    else if(targetType==='triple'){for(let i=0;i<hand.length-2;i++)for(let j=i+1;j<hand.length;j++)for(let k=j+1;k<hand.length;k++)if(hand[i].r===hand[j].r&&hand[j].r===hand[k].r)results.push([i,j,k]);}
+    else if(targetType==='bomb4'){const rmap={};hand.forEach((c,i)=>{if(!rmap[c.r])rmap[c.r]=[];rmap[c.r].push(i);});Object.values(rmap).forEach(idxs=>{if(idxs.length>=4)results.push(idxs.slice(0,4));});}
+    else if(targetType==='seq'){const len=targetLen;const byRank={};hand.forEach((c,i)=>{if(c.r!=='2'){if(!byRank[c.r])byRank[c.r]=[];byRank[c.r].push(i);}});const avail=RANK_ORDER.filter(r=>r!=='2');for(let s=0;s<=avail.length-len;s++){const slice=avail.slice(s,s+len);if(slice.every(r=>byRank[r]))results.push(slice.map(r=>byRank[r][0]));}}
+    else if(targetType==='dseq'){const pairs=targetPairs;const byRank={};hand.forEach((c,i)=>{if(c.r!=='2'){if(!byRank[c.r])byRank[c.r]=[];byRank[c.r].push(i);}});const ranksWithPair=RANK_ORDER.filter(r=>r!=='2'&&byRank[r]&&byRank[r].length>=2);for(let s=0;s<=ranksWithPair.length-pairs;s++){const slice=ranksWithPair.slice(s,s+pairs);let consec=true;for(let i=1;i<slice.length;i++)if(RANK_ORDER.indexOf(slice[i])-RANK_ORDER.indexOf(slice[i-1])!==1){consec=false;break;}if(consec)results.push(slice.flatMap(r=>byRank[r].slice(0,2)));}}
+    else if(targetType==='multipair'){const pairs=targetPairs;const byRank={};hand.forEach((c,i)=>{if(c.r!=='2'){if(!byRank[c.r])byRank[c.r]=[];byRank[c.r].push(i);}});const pairRanks=Object.entries(byRank).filter(([,idxs])=>idxs.length>=2).map(([r,idxs])=>({r,idxs}));function combine(arr,k,start,cur){if(cur.length===k){results.push(cur.flatMap(x=>x.idxs.slice(0,2)));return;}for(let i=start;i<arr.length;i++)combine(arr,k,i+1,[...cur,arr[i]]);}if(pairRanks.length>=pairs)combine(pairRanks,pairs,0,[]);}
+    return results;
+  }
+
+  let hint=[],hintMsg='';
+  if(!lastPlay.length){hint=[0];hintMsg='Gợi ý: đánh lá nhỏ nhất.';}
+  else{
+    const lc=getCombo(lastPlay);
+    if(!lc){hint=[];hintMsg='Không đọc được bài bàn.';}
+    else{
+      const candidates=findAllCombos(hand,lc.type,lc.len,lc.pairs);
+      const valid=candidates.map(idxs=>({idxs,cards:idxs.map(i=>hand[i])})).filter(({cards})=>{const c=getCombo(cards);return c&&canBeat(c,lastPlay);}).sort((a,b)=>getCombo(a.cards).val-getCombo(b.cards).val);
+      if(!valid.length){
+        const bombs=findAllCombos(hand,'bomb4',4,null).map(idxs=>({idxs,cards:idxs.map(i=>hand[i])})).filter(({cards})=>{const c=getCombo(cards);return c&&canBeat(c,lastPlay);}).sort((a,b)=>getCombo(a.cards).val-getCombo(b.cards).val);
+        if(bombs.length){hint=bombs[0].idxs;hintMsg='💣 Gợi ý: tứ quý chặn!';}
+        else{hint=[];hintMsg='Không có bài để chặn — bỏ lượt!';}
+      }else{
+        hint=valid[0].idxs;
+        const typeNames={single:'đơn',pair:'đôi',triple:'bộ ba',seq:'sảnh',dseq:'đôi đôi liên tiếp',multipair:'đôi đôi',bomb4:'tứ quý'};
+        const combo=getCombo(valid[0].cards);
+        hintMsg='Gợi ý: '+( typeNames[combo.type]||combo.type)+' chặn được!'+(valid.length>1?' ('+valid.length+' lựa chọn)':'');
+      }
+    }
+  }
+  App.selected=new Set(hint);setGameStatus(hintMsg);vib(hint.length?[20,10,20]:30);
+  document.getElementById('myHand').querySelectorAll('.card').forEach((el,idx)=>{el.className=el.className.replace(' sel','')+(App.selected.has(idx)?' sel':'');el.style.transform=App.selected.has(idx)?'translateY(-16px)':'';});
 };
 
 function setGameStatus(msg){document.getElementById('gameStatus').textContent=msg;}
