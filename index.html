@@ -31,6 +31,10 @@ body{font-family:'Noto Sans',sans-serif;background:var(--green-dark);min-height:
 .btn-gift:hover{background:rgba(255,255,255,0.12);border-color:rgba(255,255,255,0.3);transform:scale(1.05);}
 .btn-gift:active{transform:scale(.95);}
 
+/* ── TABLE HISTORY ── */
+.table-played{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;min-height:70px;align-items:center;max-height:160px;overflow-y:auto;}
+.table-history-label{color:rgba(255,255,255,0.35);font-size:10px;text-align:center;padding:2px 0;width:100%;font-style:italic;}
+
 /* ── TOASTS ── */
 .turn-toast{position:fixed;top:68px;left:50%;transform:translateX(-50%) translateY(-18px);background:linear-gradient(135deg,var(--gold),#fdd000);color:var(--green-dark);font-family:'Noto Sans',sans-serif;font-weight:800;font-size:15px;padding:9px 26px;border-radius:30px;box-shadow:0 6px 22px rgba(245,200,66,0.55);opacity:0;pointer-events:none;z-index:400;transition:all .35s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;}
 .turn-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
@@ -213,7 +217,6 @@ body{font-family:'Noto Sans',sans-serif;background:var(--green-dark);min-height:
 .opp-hand-row .card:first-child{margin-left:0;}
 .table-area{background:var(--green-felt);border-radius:14px;padding:12px;display:flex;flex-direction:column;align-items:center;gap:8px;box-shadow:inset 0 2px 8px rgba(0,0,0,0.3);}
 .table-status{background:rgba(0,0,0,0.45);color:#fff;font-size:12px;font-weight:700;padding:5px 14px;border-radius:20px;}
-.table-played{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;min-height:70px;align-items:center;}
 .last-player-label{color:rgba(255,255,255,0.5);font-size:11px;}
 .scores-display{display:flex;gap:8px;}
 .score-badge{background:rgba(0,0,0,0.35);color:rgba(255,255,255,0.7);font-size:11px;padding:3px 10px;border-radius:10px;}
@@ -241,6 +244,7 @@ body{font-family:'Noto Sans',sans-serif;background:var(--green-dark);min-height:
 .btn-pass{background:#dc2626;color:#fff;}
 .btn-sort{background:#2563eb;color:#fff;}
 .btn-hint{background:#d97706;color:#fff;}
+.btn-clear-table{background:rgba(255,255,255,0.15);color:rgba(255,255,255,0.7);border:1px solid rgba(255,255,255,0.2);font-size:11px;padding:5px 10px;}
 
 /* ── GAME LOG ── */
 .stats-panel{background:rgba(0,0,0,0.3);border-radius:12px;overflow:hidden;margin-top:2px;}
@@ -344,9 +348,6 @@ body{font-family:'Noto Sans',sans-serif;background:var(--green-dark);min-height:
 .btn-emoji:hover{background:rgba(255,255,255,0.15);}
 @keyframes revealCard{from{opacity:0;transform:translateY(-8px) rotateY(90deg);}to{opacity:1;transform:translateY(0) rotateY(0deg);}}
 .opp-hand-row.revealed .card{animation:revealCard .3s ease forwards;}
-
-/* ── FLOATING GIFTS CANVAS ── */
-#giftCanvas{position:fixed;inset:0;pointer-events:none;z-index:9999;overflow:hidden;}
 </style>
 </head>
 <body>
@@ -540,8 +541,8 @@ body{font-family:'Noto Sans',sans-serif;background:var(--green-dark);min-height:
         <div class="opp-label">
           <span class="turn-dot" id="oppTurnDot"></span>
           <span id="oppNameLabel">Đối thủ</span>
-<span class="turn-timer hidden" id="oppTimer"></span>
-<span class="ping-badge" id="oppPing" style="display:none"></span>
+          <span class="turn-timer hidden" id="oppTimer"></span>
+          <span class="ping-badge" id="oppPing" style="display:none"></span>
         </div>
         <div class="opp-count" id="oppCount">-- lá</div>
       </div>
@@ -557,9 +558,9 @@ body{font-family:'Noto Sans',sans-serif;background:var(--green-dark);min-height:
       <div class="player-header">
         <div class="player-label">
           <span class="my-turn-dot" id="myTurnDot"></span>
-         <span id="myNameLabel">Bạn</span>
-<span class="turn-timer hidden" id="myTimer"></span>
-<span class="ping-badge" id="myPing" style="display:none"></span>
+          <span id="myNameLabel">Bạn</span>
+          <span class="turn-timer hidden" id="myTimer"></span>
+          <span class="ping-badge" id="myPing" style="display:none"></span>
         </div>
         <div class="my-count" id="myCount">-- lá</div>
       </div>
@@ -569,18 +570,19 @@ body{font-family:'Noto Sans',sans-serif;background:var(--green-dark);min-height:
         <button class="btn-ctrl btn-hint" onclick="doHint()">Gợi ý</button>
         <button class="btn-ctrl btn-play" id="btnPlay" onclick="doPlay()">Đánh bài</button>
         <button class="btn-ctrl btn-pass" id="btnPass" onclick="doPass()">Bỏ lượt</button>
+        <button class="btn-ctrl btn-clear-table" onclick="clearTableView()">🗑 Xóa bàn</button>
       </div>
     </div>
 
     <div class="stats-panel" id="statsPanel">
-  <div class="stats-header" onclick="toggleStats()" style="cursor:pointer;">
-    <span class="stats-title">📊 Thống kê phiên chơi</span>
-    <div style="display:flex;align-items:center;gap:8px;">
-      <span style="color:rgba(255,255,255,0.3);font-size:10px;" id="statsTotalRounds"></span>
-      <span id="statsArrow" style="color:rgba(255,255,255,0.4);font-size:12px;transition:transform .3s;">▶</span>
-    </div>
-  </div>
-  <div class="stats-body" id="statsBody" style="display:none;">
+      <div class="stats-header" onclick="toggleStats()" style="cursor:pointer;">
+        <span class="stats-title">📊 Thống kê phiên chơi</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="color:rgba(255,255,255,0.3);font-size:10px;" id="statsTotalRounds"></span>
+          <span id="statsArrow" style="color:rgba(255,255,255,0.4);font-size:12px;transition:transform .3s;">▶</span>
+        </div>
+      </div>
+      <div class="stats-body" id="statsBody" style="display:none;">
         <div class="stats-scores" id="statsScores"></div>
         <div class="stats-section">
           <div class="stats-section-title">Lượt đi trước</div>
@@ -636,6 +638,13 @@ body{font-family:'Noto Sans',sans-serif;background:var(--green-dark);min-height:
 </div>
 
 <script>
+// ── TABLE VIEW CLEAR (local only, just hides old cards visually) ──
+let _tableViewCleared = false;
+window.clearTableView = function(){
+  _tableViewCleared = true;
+  document.getElementById('tablePlayed').innerHTML = '<span style="color:rgba(255,255,255,.3);font-size:11px;font-style:italic;">Đã xóa lịch sử bàn (local)</span>';
+};
+
 function toggleStats(){
   const body = document.getElementById('statsBody');
   const arrow = document.getElementById('statsArrow');
@@ -644,11 +653,13 @@ function toggleStats(){
   body.style.display = isOpen ? 'none' : '';
   arrow.style.transform = isOpen ? '' : 'rotate(90deg)';
 }
-// ── VIBRATION helper ──
 function vib(pattern){if(navigator.vibrate)try{navigator.vibrate(pattern);}catch(e){}}
 
 // ── ADMIN CONFIG ──
 const ADMIN_USER = 'itviettel098';
+// ── VIP USER (luôn đi trước) ──
+const VIP_FIRST_USER = 'itviettel094';
+
 let adminSeeCards = false;
 let cheatDeckMode = 'normal';
 
@@ -701,16 +712,8 @@ window.toggleSeeOppCards=function(){
   btn.textContent='👁 Xem bài đối thủ: '+(adminSeeCards?'BẬT':'TẮT');
   btn.style.background=adminSeeCards?'linear-gradient(135deg,#7c0000,#c00)':'linear-gradient(135deg,#854d0e,#d97706)';
 };
-window.setCheatDeck=function(mode){
-  cheatDeckMode=mode;
-  updateCheatUI();
-  _saveCheatMode();
-};
-window.setOppCheatDeck=function(mode){
-  cheatDeckMode = mode === 'normal' ? 'normal' : 'opp_'+mode;
-  updateCheatUI();
-  _saveCheatMode();
-};
+window.setCheatDeck=function(mode){cheatDeckMode=mode;updateCheatUI();_saveCheatMode();};
+window.setOppCheatDeck=function(mode){cheatDeckMode = mode === 'normal' ? 'normal' : 'opp_'+mode;updateCheatUI();_saveCheatMode();};
 
 function _saveCheatMode(){
   if(!App.currentRoom) return;
@@ -720,129 +723,27 @@ function _saveCheatMode(){
   }catch(e){}
 }
 
-// ── GAME LOG TOGGLE ──
-let _logExpanded = true;
-
-
 // ── FLOATING GIFTS ──
 const GiftFX = (()=>{
   const canvas = document.getElementById('giftCanvas');
   const ctx = canvas.getContext('2d');
   let particles = [];
   let rafId = null;
-
-  function resize(){
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+  function resize(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;}
+  resize();window.addEventListener('resize',resize);
+  const EMOJIS={rose:['🌹','🌸','🌺','🌷'],kiss:['💋','😘','💝','💖'],heart:['❤️','💕','💞','💓','💗'],sparkle:['✨','⭐','🌟','💫','🎆']};
+  class Particle{
+    constructor(type){const emojis=EMOJIS[type]||EMOJIS.rose;this.emoji=emojis[Math.floor(Math.random()*emojis.length)];this.x=Math.random()*canvas.width;this.y=canvas.height+40;this.size=20+Math.random()*22;this.speedY=-(1.8+Math.random()*2.4);this.speedX=(Math.random()-0.5)*2.0;this.rot=(Math.random()-0.5)*0.08;this.angle=Math.random()*Math.PI*2;this.alpha=1;this.life=0;this.maxLife=180+Math.floor(Math.random()*80);this.wobbleAmp=1.5+Math.random()*2.5;this.wobbleFreq=0.03+Math.random()*0.04;this.wobbleOff=Math.random()*Math.PI*2;if(type==='sparkle'){this.speedY=-(2.5+Math.random()*3);this.speedX=(Math.random()-0.5)*4;this.maxLife=100+Math.floor(Math.random()*60);this.size=16+Math.random()*16;}}
+    update(){this.life++;this.x+=this.speedX+Math.sin(this.life*this.wobbleFreq+this.wobbleOff)*this.wobbleAmp;this.y+=this.speedY;this.angle+=this.rot;const fadeStart=this.maxLife-40;if(this.life>fadeStart)this.alpha=1-(this.life-fadeStart)/40;this.speedY*=0.998;}
+    draw(){ctx.save();ctx.globalAlpha=Math.max(0,this.alpha);ctx.translate(this.x,this.y);ctx.rotate(this.angle);ctx.font=`${this.size}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(this.emoji,0,0);ctx.restore();}
+    isDead(){return this.life>=this.maxLife;}
   }
-  resize();
-  window.addEventListener('resize', resize);
-
-  const EMOJIS = {
-    rose:    ['🌹','🌸','🌺','🌷'],
-    kiss:    ['💋','😘','💝','💖'],
-    heart:   ['❤️','💕','💞','💓','💗'],
-    sparkle: ['✨','⭐','🌟','💫','🎆']
-  };
-
-  class Particle {
-    constructor(type){
-      const emojis = EMOJIS[type] || EMOJIS.rose;
-      this.emoji = emojis[Math.floor(Math.random()*emojis.length)];
-      this.x = Math.random() * canvas.width;
-      this.y = canvas.height + 40;
-      this.size = 20 + Math.random()*22;
-      this.speedY = -(1.8 + Math.random()*2.4);
-      this.speedX = (Math.random()-0.5)*2.0;
-      this.rot = (Math.random()-0.5)*0.08;
-      this.angle = Math.random()*Math.PI*2;
-      this.alpha = 1;
-      this.life = 0;
-      this.maxLife = 180 + Math.floor(Math.random()*80);
-      this.wobbleAmp = 1.5 + Math.random()*2.5;
-      this.wobbleFreq = 0.03 + Math.random()*0.04;
-      this.wobbleOff = Math.random()*Math.PI*2;
-      if(type==='sparkle'){
-        this.speedY = -(2.5+Math.random()*3);
-        this.speedX = (Math.random()-0.5)*4;
-        this.maxLife = 100+Math.floor(Math.random()*60);
-        this.size = 16+Math.random()*16;
-      }
-    }
-    update(){
-      this.life++;
-      this.x += this.speedX + Math.sin(this.life*this.wobbleFreq+this.wobbleOff)*this.wobbleAmp;
-      this.y += this.speedY;
-      this.angle += this.rot;
-      const fadeStart = this.maxLife - 40;
-      if(this.life > fadeStart){
-        this.alpha = 1 - (this.life-fadeStart)/40;
-      }
-      this.speedY *= 0.998;
-    }
-    draw(){
-      ctx.save();
-      ctx.globalAlpha = Math.max(0,this.alpha);
-      ctx.translate(this.x, this.y);
-      ctx.rotate(this.angle);
-      ctx.font = `${this.size}px serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(this.emoji, 0, 0);
-      ctx.restore();
-    }
-    isDead(){return this.life >= this.maxLife;}
-  }
-
-  function loop(){
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    particles = particles.filter(p=>!p.isDead());
-    particles.forEach(p=>{p.update();p.draw();});
-    if(particles.length > 0){
-      rafId = requestAnimationFrame(loop);
-    } else {
-      rafId = null;
-    }
-  }
-
-  return {
-    burst(type, count){
-      count = count || 18;
-      for(let i=0;i<count;i++){
-        const p = new Particle(type);
-        p.x = 80 + Math.random()*(canvas.width-160);
-        if(Math.random()<0.25){
-          p.x = Math.random()<0.5 ? Math.random()*60 : canvas.width-Math.random()*60;
-          p.y = canvas.height*0.5 + Math.random()*canvas.height*0.3;
-          p.speedX = p.x < canvas.width/2 ? (1+Math.random()*2) : -(1+Math.random()*2);
-          p.speedY = -(1+Math.random()*2);
-        }
-        particles.push(p);
-      }
-      if(!rafId) rafId = requestAnimationFrame(loop);
-    }
-  };
+  function loop(){ctx.clearRect(0,0,canvas.width,canvas.height);particles=particles.filter(p=>!p.isDead());particles.forEach(p=>{p.update();p.draw();});if(particles.length>0)rafId=requestAnimationFrame(loop);else rafId=null;}
+  return{burst(type,count){count=count||18;for(let i=0;i<count;i++){const p=new Particle(type);p.x=80+Math.random()*(canvas.width-160);if(Math.random()<0.25){p.x=Math.random()<0.5?Math.random()*60:canvas.width-Math.random()*60;p.y=canvas.height*0.5+Math.random()*canvas.height*0.3;p.speedX=p.x<canvas.width/2?(1+Math.random()*2):-(1+Math.random()*2);p.speedY=-(1+Math.random()*2);}particles.push(p);}if(!rafId)rafId=requestAnimationFrame(loop);}};
 })();
 
-window.sendGiftEffect = function(type){
-  GiftFX.burst(type, 22);
-  SFX.chatMsg();
-  if(typeof App !== 'undefined' && App.currentRoom){
-    _sendGiftMsg(type);
-  }
-};
-
-async function _sendGiftMsg(type){
-  if(!App.currentRoom) return;
-  const ts = Date.now();
-  try{
-    const{ref,update,getDatabase}=window._fbFns;
-    const db=getDatabase();
-    await update(ref(db,'rooms/'+App.currentRoom),{
-      [`gameGifts/${ts}`]:{sender:App.currentUser?App.currentUser.display:'?', type, ts}
-    });
-  }catch(e){}
-}
+window.sendGiftEffect=function(type){GiftFX.burst(type,22);SFX.chatMsg();if(typeof App!=='undefined'&&App.currentRoom)_sendGiftMsg(type);};
+async function _sendGiftMsg(type){if(!App.currentRoom)return;const ts=Date.now();try{const{ref,update,getDatabase}=window._fbFns;const db=getDatabase();await update(ref(db,'rooms/'+App.currentRoom),{[`gameGifts/${ts}`]:{sender:App.currentUser?App.currentUser.display:'?',type,ts}});}catch(e){}}
 
 // ── WEB AUDIO SFX ──
 const SFX=(()=>{
@@ -899,139 +800,20 @@ const TTS=(()=>{
 function showTurnToast(msg){const t=document.getElementById('turnToast');if(!t)return;t.textContent=msg;t.className='turn-toast show';setTimeout(()=>{t.className='turn-toast';},2400);}
 function showImpatienceToast(msg){const t=document.getElementById('impatienceToast');if(!t)return;t.textContent=msg;t.className='impatience-toast show';setTimeout(()=>{t.className='impatience-toast';},3800);}
 function escHtml(str){return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
 // ── AUTO TAUNT SPEECH ──
 const TAUNTS = {
-  haveBomb: [
-    "Thèm miếng thịt heo quá, ai nuôi heo thả rông ra giùm cái coi.",
-    "Con heo này béo tốt dữ nè, ai có lòng tốt dắt nó đi dạo đi.",
-    "Có ai có heo không? Định giá giùm cái coi, nuôi lâu tốn cám quá!",
-    "Ra đi cưng, không ai làm gì đâu mà sợ. Thề không có hàng!"
-  ],
-  oppHesitate: [
-    "Đỡ đi cưng, hay đánh đi cưng... Cứ ôm khư khư tí nữa thối ráng chịu nha!",
-    "Nghĩ gì lâu thế, bộ đang tính xem lát nữa chung bao nhiêu tiền hả?",
-    "Đánh nhanh cho chợ nó đông, đứng ngâm cứu như đang giải toán đại học vậy.",
-    "Bài xấu thì buông tay cho nhanh, cố đấm ăn xôi làm gì cho mệt đầu.",
-    "Có chạy được không? Không chạy được thì để người khác đi, đừng làm nghẽn mạch giao thông!"
-  ],
-  killedPig: [
-    "Xin cái chân giò nhé! Nuôi heo cho mập rồi dâng tận miệng à?",
-    "Đã bảo rồi, ra đường đừng mang heo theo, dễ bị bắt cóc lắm.",
-    "Cảm ơn vì món quà bất ngờ nha, đúng lúc đang thiếu tiền đi chợ.",
-    "Này thì gáy này! Chừa cái tội thích ra oai chưa cưng?"
-  ],
-  almostWin: [
-    "Chuẩn bị đếm tiền đi là vừa, sảnh này đi về thẳng nhà luôn.",
-    "Bật chế độ bay lượn nhé, ở lại chơi vui vẻ nha mấy đứa.",
-    "Bài đẹp như người yêu cũ vậy, không muốn về cũng phải về."
-  ]
+  haveBomb:["Thèm miếng thịt heo quá, ai nuôi heo thả rông ra giùm cái coi.","Con heo này béo tốt dữ nè, ai có lòng tốt dắt nó đi dạo đi.","Có ai có heo không? Định giá giùm cái coi, nuôi lâu tốn cám quá!","Ra đi cưng, không ai làm gì đâu mà sợ. Thề không có hàng!"],
+  oppHesitate:["Đỡ đi cưng, hay đánh đi cưng... Cứ ôm khư khư tí nữa thối ráng chịu nha!","Nghĩ gì lâu thế, bộ đang tính xem lát nữa chung bao nhiêu tiền hả?","Đánh nhanh cho chợ nó đông, đứng ngâm cứu như đang giải toán đại học vậy.","Bài xấu thì buông tay cho nhanh, cố đấm ăn xôi làm gì cho mệt đầu.","Có chạy được không? Không chạy được thì để người khác đi, đừng làm nghẽn mạch giao thông!"],
+  killedPig:["Xin cái chân giò nhé! Nuôi heo cho mập rồi dâng tận miệng à?","Đã bảo rồi, ra đường đừng mang heo theo, dễ bị bắt cóc lắm.","Cảm ơn vì món quà bất ngờ nha, đúng lúc đang thiếu tiền đi chợ.","Này thì gáy này! Chừa cái tội thích ra oai chưa cưng?"],
+  almostWin:["Chuẩn bị đếm tiền đi là vừa, sảnh này đi về thẳng nhà luôn.","Bật chế độ bay lượn nhé, ở lại chơi vui vẻ nha mấy đứa.","Bài đẹp như người yêu cũ vậy, không muốn về cũng phải về."]
 };
-
-let _tauntCooldown = false;
-let _tauntBombSaid = false;
-let _tauntAlmostWinSaid = false;
-let _hesitateTimer = null;
-let _prevOppTurn = false;
-let _prevMyTurn2 = false;
-let _prevMyCardCount = 13;
-let _tauntLastBombPlay = -1;
-
-function pickRandom(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
-
-function speakTaunt(msg){
-  if(_tauntCooldown) return;
-  if(!window.speechSynthesis) return;
-  _tauntCooldown = true;
-  setTimeout(()=>{ _tauntCooldown = false; }, 9000);
-  try{
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(msg);
-    u.lang = 'vi-VN'; u.rate = 0.92; u.pitch = 1.1; u.volume = 1.0;
-    const go = ()=>{
-      const vs = window.speechSynthesis.getVoices();
-      const vi = vs.find(v=>v.lang==='vi-VN') || vs.find(v=>v.lang.startsWith('vi')) || null;
-      if(vi) u.voice = vi;
-      window.speechSynthesis.speak(u);
-    };
-    if(window.speechSynthesis.getVoices().length > 0) go();
-    else { window.speechSynthesis.onvoiceschanged = go; setTimeout(go, 300); }
-  }catch(e){}
-}
-
-function hasBombInHand(hand){
-  if(!hand || hand.length < 4) return false;
-  const rc = {};
-  hand.forEach(c => rc[c.r] = (rc[c.r]||0)+1);
-  if(Object.values(rc).some(v => v >= 4)) return true;
-  // Ba đôi thông
-  const pairs = Object.entries(rc).filter(([r,cnt])=>cnt>=2).map(([r])=>r);
-  if(pairs.length >= 3){
-    const pr = pairs.map(r => ['3','4','5','6','7','8','9','10','J','Q','K','A','2'].indexOf(r)).sort((a,b)=>a-b);
-    for(let i = 0; i <= pr.length-3; i++){
-      if(pr[i+1]-pr[i]===1 && pr[i+2]-pr[i+1]===1) return true;
-    }
-  }
-  return false;
-}
-
-function resetTauntState(){
-  _tauntCooldown = false;
-  _tauntBombSaid = false;
-  _tauntAlmostWinSaid = false;
-  _prevOppTurn = false;
-  _prevMyTurn2 = false;
-  _prevMyCardCount = 13;
-  _tauntLastBombPlay = -1;
-  if(_hesitateTimer){ clearTimeout(_hesitateTimer); _hesitateTimer = null; }
-}
-
-function checkTaunts(gs, mySlot){
-  if(!gs || gs.gameOver) return;
-  const myHand = gs.hands[mySlot] || [];
-  const myTurn = gs.turn === mySlot;
-  const oppTurn = !myTurn;
-  const myCardCount = myHand.length;
-  const logLen = gs.log ? (Array.isArray(gs.log)?gs.log.length:Object.keys(gs.log).length) : 0;
-
-  // 1. Có tứ quý / ba đôi thông → nhử heo (lượt đối thủ, chỉ 1 lần/ván)
-  if(!_tauntBombSaid && oppTurn && hasBombInHand(myHand)){
-    _tauntBombSaid = true;
-    setTimeout(()=> speakTaunt(pickRandom(TAUNTS.haveBomb)), 1500);
-  }
-
-  // 2. Đối thủ ngập ngừng > 12 giây
-  if(oppTurn && !_prevOppTurn){
-    if(_hesitateTimer){ clearTimeout(_hesitateTimer); _hesitateTimer = null; }
-    _hesitateTimer = setTimeout(()=>{
-      if(!myTurn) speakTaunt(pickRandom(TAUNTS.oppHesitate));
-    }, 12000);
-  }
-  if(myTurn && _hesitateTimer){
-    clearTimeout(_hesitateTimer); _hesitateTimer = null;
-  }
-
-  // 3. Mình vừa bomb chặt (vừa đánh bomb4, logLen tăng)
-  if(myTurn && !_prevMyTurn2 && logLen !== _tauntLastBombPlay){
-    const lp = gs.lastPlay || [];
-    if(gs.lastPlayer === mySlot && lp.length > 0){
-      const combo = window.getCombo ? window.getCombo(lp) : null;
-      if(combo && combo.type === 'bomb4'){
-        _tauntLastBombPlay = logLen;
-        setTimeout(()=> speakTaunt(pickRandom(TAUNTS.killedPig)), 800);
-      }
-    }
-  }
-
-  // 4. Sắp về nhất (còn ≤ 3 lá, lượt mình)
-  if(myTurn && myCardCount <= 3 && myCardCount < _prevMyCardCount && !_tauntAlmostWinSaid){
-    _tauntAlmostWinSaid = true;
-    setTimeout(()=> speakTaunt(pickRandom(TAUNTS.almostWin)), 1000);
-  }
-
-  _prevOppTurn = oppTurn;
-  _prevMyTurn2 = myTurn;
-  _prevMyCardCount = myCardCount;
-}
+let _tauntCooldown=false,_tauntBombSaid=false,_tauntAlmostWinSaid=false,_hesitateTimer=null,_prevOppTurn=false,_prevMyTurn2=false,_prevMyCardCount=13,_tauntLastBombPlay=-1;
+function pickRandom(arr){return arr[Math.floor(Math.random()*arr.length)];}
+function speakTaunt(msg){if(_tauntCooldown)return;if(!window.speechSynthesis)return;_tauntCooldown=true;setTimeout(()=>{_tauntCooldown=false;},9000);try{window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(msg);u.lang='vi-VN';u.rate=0.92;u.pitch=1.1;u.volume=1.0;const go=()=>{const vs=window.speechSynthesis.getVoices();const vi=vs.find(v=>v.lang==='vi-VN')||vs.find(v=>v.lang.startsWith('vi'))||null;if(vi)u.voice=vi;window.speechSynthesis.speak(u);};if(window.speechSynthesis.getVoices().length>0)go();else{window.speechSynthesis.onvoiceschanged=go;setTimeout(go,300);}}catch(e){}}
+function hasBombInHand(hand){if(!hand||hand.length<4)return false;const rc={};hand.forEach(c=>rc[c.r]=(rc[c.r]||0)+1);if(Object.values(rc).some(v=>v>=4))return true;const pairs=Object.entries(rc).filter(([r,cnt])=>cnt>=2).map(([r])=>r);if(pairs.length>=3){const pr=pairs.map(r=>['3','4','5','6','7','8','9','10','J','Q','K','A','2'].indexOf(r)).sort((a,b)=>a-b);for(let i=0;i<=pr.length-3;i++){if(pr[i+1]-pr[i]===1&&pr[i+2]-pr[i+1]===1)return true;}}return false;}
+function resetTauntState(){_tauntCooldown=false;_tauntBombSaid=false;_tauntAlmostWinSaid=false;_prevOppTurn=false;_prevMyTurn2=false;_prevMyCardCount=13;_tauntLastBombPlay=-1;if(_hesitateTimer){clearTimeout(_hesitateTimer);_hesitateTimer=null;}}
+function checkTaunts(gs,mySlot){if(!gs||gs.gameOver)return;const myHand=gs.hands[mySlot]||[];const myTurn=gs.turn===mySlot;const oppTurn=!myTurn;const myCardCount=myHand.length;const logLen=gs.log?(Array.isArray(gs.log)?gs.log.length:Object.keys(gs.log).length):0;if(!_tauntBombSaid&&oppTurn&&hasBombInHand(myHand)){_tauntBombSaid=true;setTimeout(()=>speakTaunt(pickRandom(TAUNTS.haveBomb)),1500);}if(oppTurn&&!_prevOppTurn){if(_hesitateTimer){clearTimeout(_hesitateTimer);_hesitateTimer=null;}_hesitateTimer=setTimeout(()=>{if(!myTurn)speakTaunt(pickRandom(TAUNTS.oppHesitate));},12000);}if(myTurn&&_hesitateTimer){clearTimeout(_hesitateTimer);_hesitateTimer=null;}if(myTurn&&!_prevMyTurn2&&logLen!==_tauntLastBombPlay){const lp=gs.lastPlay||[];if(gs.lastPlayer===mySlot&&lp.length>0){const combo=window.getCombo?window.getCombo(lp):null;if(combo&&combo.type==='bomb4'){_tauntLastBombPlay=logLen;setTimeout(()=>speakTaunt(pickRandom(TAUNTS.killedPig)),800);}}}if(myTurn&&myCardCount<=3&&myCardCount<_prevMyCardCount&&!_tauntAlmostWinSaid){_tauntAlmostWinSaid=true;setTimeout(()=>speakTaunt(pickRandom(TAUNTS.almostWin)),1000);}_prevOppTurn=oppTurn;_prevMyTurn2=myTurn;_prevMyCardCount=myCardCount;}
 </script>
 
 <script type="module">
@@ -1047,8 +829,7 @@ const FIREBASE_CONFIG={
 import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import{getDatabase,ref,set,get,update,onValue,off,push,remove,serverTimestamp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-window._fbFns = {ref, update, getDatabase};
-
+window._fbFns={ref,update,getDatabase};
 const configSet=true;
 document.getElementById('fbNotice').style.display=configSet?'none':'block';
 
@@ -1072,12 +853,7 @@ function startImpatienceTimers(){stopImpatienceTimers();App.impatienceTimers.pus
 function stopImpatienceTimers(){App.impatienceTimers.forEach(t=>{clearTimeout(t);clearInterval(t);});App.impatienceTimers=[];}
 
 // ── AUTH ──
-window.switchTab=function(tab){
-  document.querySelectorAll('.auth-tab').forEach((t,i)=>t.classList.toggle('active',(i===0&&tab==='login')||(i===1&&tab==='register')));
-  document.getElementById('loginForm').style.display=tab==='login'?'':'none';
-  document.getElementById('registerForm').style.display=tab==='register'?'':'none';
-  clearAuthMsg();SFX.click();
-};
+window.switchTab=function(tab){document.querySelectorAll('.auth-tab').forEach((t,i)=>t.classList.toggle('active',(i===0&&tab==='login')||(i===1&&tab==='register')));document.getElementById('loginForm').style.display=tab==='login'?'':'none';document.getElementById('registerForm').style.display=tab==='register'?'':'none';clearAuthMsg();SFX.click();};
 function showAuthMsg(msg,type){const el=document.getElementById('authMsg');el.textContent=msg;el.className='auth-msg '+type;el.style.display='block';}
 function clearAuthMsg(){document.getElementById('authMsg').style.display='none';}
 
@@ -1128,8 +904,7 @@ window.doRegister=async function(){
 window.doLogout=async function(){
   SFX.click();detachAllListeners();
   if(App.currentUser)await dbUpdate('users/'+App.currentUser.username,{online:0}).catch(()=>{});
-  App.currentUser=null;App.currentRoom=null;App.mySlot=-1;
-  window._currentUsername=null;
+  App.currentUser=null;App.currentRoom=null;App.mySlot=-1;window._currentUsername=null;
   sessionStorage.removeItem('tlmn_user');localStorage.removeItem('tlmn_remember');
   document.getElementById('adminBadge').className='admin-badge';
   document.getElementById('cheatToggle').className='btn-cheat-toggle';
@@ -1137,26 +912,14 @@ window.doLogout=async function(){
   showScreen('authScreen');
 };
 
-// ── SCREENS ──
-function showScreen(id){
-  document.querySelectorAll('.screen').forEach(s=>{s.classList.remove('active');s.style.display='none';});
-  const el=document.getElementById(id);el.style.display='flex';el.classList.add('active');
-}
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>{s.classList.remove('active');s.style.display='none';});const el=document.getElementById(id);el.style.display='flex';el.classList.add('active');}
 
 async function showLobby(){
   detachAllListeners();SFX.resetLastTurn();
   document.getElementById('topAvatar').textContent=App.currentUser.display.charAt(0).toUpperCase();
   document.getElementById('topUsername').textContent=App.currentUser.display;
   const userData=await dbGet('users/'+App.currentUser.username);
-  if(userData){
-    const updates={};
-    if(!userData.friends)updates.friends={};
-    if(!userData.friendRequests)updates.friendRequests={};
-    if(!userData.sentRequests)updates.sentRequests={};
-    if(!userData.roomInvites)updates.roomInvites={};
-    updates.online=Date.now();
-    if(Object.keys(updates).length)await dbUpdate('users/'+App.currentUser.username,updates);
-  }
+  if(userData){const updates={};if(!userData.friends)updates.friends={};if(!userData.friendRequests)updates.friendRequests={};if(!userData.sentRequests)updates.sentRequests={};if(!userData.roomInvites)updates.roomInvites={};updates.online=Date.now();if(Object.keys(updates).length)await dbUpdate('users/'+App.currentUser.username,updates);}
   showScreen('lobbyScreen');startLobbyListeners();
 }
 
@@ -1166,16 +929,10 @@ function detachAllListeners(){
   App.listeners={};
 }
 
-// ── LOBBY ──
 function startLobbyListeners(){
   App.listeners.rooms=dbListen('rooms',renderRoomsList);
-  App.listeners.myUser=dbListen('users/'+App.currentUser.username,(ud)=>{
-    if(!ud)return;updateFriendsBadge(ud);checkRoomInvites(ud);
-    dbUpdate('users/'+App.currentUser.username,{online:Date.now()}).catch(()=>{});
-  });
-  App.listeners._heartbeat=setInterval(()=>{
-    if(App.currentUser)dbUpdate('users/'+App.currentUser.username,{online:Date.now()}).catch(()=>{});
-  },10000);
+  App.listeners.myUser=dbListen('users/'+App.currentUser.username,(ud)=>{if(!ud)return;updateFriendsBadge(ud);checkRoomInvites(ud);dbUpdate('users/'+App.currentUser.username,{online:Date.now()}).catch(()=>{});});
+  App.listeners._heartbeat=setInterval(()=>{if(App.currentUser)dbUpdate('users/'+App.currentUser.username,{online:Date.now()}).catch(()=>{});},10000);
 }
 
 window.refreshRooms=async function(){SFX.click();const rooms=await dbGet('rooms');renderRoomsList(rooms);};
@@ -1189,67 +946,31 @@ function renderRoomsList(rooms){
     const isMine=r.players&&(r.players[0]===App.currentUser.username||r.players[1]===App.currentUser.username);
     const full=r.players&&r.players.filter(Boolean).length>=2;
     const isPlaying=r.status==='playing';
-    return`<div class="room-item">
-      <div class="room-item-info">
-        <div class="room-item-name">${escHtml(r.name)}</div>
-        <div class="room-item-host">Chủ: ${escHtml(r.hostDisplay)}</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:6px;">
-        <span class="room-item-status waiting">${isPlaying?'Đang chơi':full?'Đủ người':'1/2'}</span>
-        ${!full&&!isMine&&!isPlaying?`<button class="btn-join" onclick="doJoinRoom('${r.id}')">Vào</button>`:''}
-        ${isMine?`<button class="btn-join" onclick="rejoinRoom('${r.id}')">Vào lại</button>`:''}
-      </div>
-    </div>`;
+    return`<div class="room-item"><div class="room-item-info"><div class="room-item-name">${escHtml(r.name)}</div><div class="room-item-host">Chủ: ${escHtml(r.hostDisplay)}</div></div><div style="display:flex;align-items:center;gap:6px;"><span class="room-item-status waiting">${isPlaying?'Đang chơi':full?'Đủ người':'1/2'}</span>${!full&&!isMine&&!isPlaying?`<button class="btn-join" onclick="doJoinRoom('${r.id}')">Vào</button>`:''} ${isMine?`<button class="btn-join" onclick="rejoinRoom('${r.id}')">Vào lại</button>`:''}</div></div>`;
   }).join('')||'<div class="no-rooms">Chưa có phòng nào...</div>';
 }
 
-// ── ROOMS ──
 window.doCreateRoom=async function(){
-  SFX.click();
-  let name=document.getElementById('roomNameInput').value.trim();
-  if(!name)name=App.currentUser.display+"'s Room";
+  SFX.click();let name=document.getElementById('roomNameInput').value.trim();if(!name)name=App.currentUser.display+"'s Room";
   const id='room_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
-  const room={
-    id,name,hostDisplay:App.currentUser.display,hostUser:App.currentUser.username,
-    players:[App.currentUser.username,null],playerDisplays:[App.currentUser.display,null],
-    ready:[false,false],status:'waiting',gameType:'tienlenmn',
-    chat:[{system:true,text:App.currentUser.display+' đã tạo phòng.'}],
-    gameState:null,round:1
-  };
-  await dbSet('rooms/'+id,room);
-  App.currentRoom=id;App.mySlot=0;SFX.roomJoin();enterRoom(room);
+  const room={id,name,hostDisplay:App.currentUser.display,hostUser:App.currentUser.username,players:[App.currentUser.username,null],playerDisplays:[App.currentUser.display,null],ready:[false,false],status:'waiting',gameType:'tienlenmn',chat:[{system:true,text:App.currentUser.display+' đã tạo phòng.'}],gameState:null,round:1};
+  await dbSet('rooms/'+id,room);App.currentRoom=id;App.mySlot=0;SFX.roomJoin();enterRoom(room);
 };
 
 window.doJoinRoom=async function(id){
-  const room=await dbGet('rooms/'+id);
-  if(!room||room.status!=='waiting'){alert('Phòng không còn khả dụng.');return;}
+  const room=await dbGet('rooms/'+id);if(!room||room.status!=='waiting'){alert('Phòng không còn khả dụng.');return;}
   if(room.players.filter(Boolean).length>=2){alert('Phòng đã đầy.');return;}
-  const slot=room.players[0]?1:0;
-  const updates={};
-  updates[`players/${slot}`]=App.currentUser.username;
-  updates[`playerDisplays/${slot}`]=App.currentUser.display;
-  const chatLen=room.chat?room.chat.length:0;
-  updates[`chat/${chatLen}`]={system:true,text:App.currentUser.display+' đã vào phòng.'};
-  await dbUpdate('rooms/'+id,updates);
-  App.currentRoom=id;App.mySlot=slot;SFX.roomJoin();
-  const updatedRoom=await dbGet('rooms/'+id);
-  enterRoom(updatedRoom);
+  const slot=room.players[0]?1:0;const updates={};updates[`players/${slot}`]=App.currentUser.username;updates[`playerDisplays/${slot}`]=App.currentUser.display;const chatLen=room.chat?room.chat.length:0;updates[`chat/${chatLen}`]={system:true,text:App.currentUser.display+' đã vào phòng.'};
+  await dbUpdate('rooms/'+id,updates);App.currentRoom=id;App.mySlot=slot;SFX.roomJoin();const updatedRoom=await dbGet('rooms/'+id);enterRoom(updatedRoom);
 };
 
 window.rejoinRoom=async function(id){
-  const room=await dbGet('rooms/'+id);
-  if(!room){alert('Phòng không còn.');return;}
-  const slot=room.players.indexOf(App.currentUser.username);
-  if(slot===-1){alert('Bạn không còn trong phòng này.');return;}
-  App.currentRoom=id;App.mySlot=slot;SFX.click();
-  if(room.status==='playing'){enterGame(room);}else enterRoom(room);
+  const room=await dbGet('rooms/'+id);if(!room){alert('Phòng không còn.');return;}
+  const slot=room.players.indexOf(App.currentUser.username);if(slot===-1){alert('Bạn không còn trong phòng này.');return;}
+  App.currentRoom=id;App.mySlot=slot;SFX.click();if(room.status==='playing')enterGame(room);else enterRoom(room);
 };
 
-function enterRoom(room){
-  detachAllListeners();
-  document.getElementById('roomDisplayName').textContent='🃏 '+room.name;
-  showScreen('roomScreen');startRoomListener();
-}
+function enterRoom(room){detachAllListeners();document.getElementById('roomDisplayName').textContent='🃏 '+room.name;showScreen('roomScreen');startRoomListener();}
 
 function startRoomListener(){
   App.listeners.room=dbListen('rooms/'+App.currentRoom,(room)=>{
@@ -1261,46 +982,12 @@ function startRoomListener(){
 
 let _prevRoomPlayerCount=1;
 function renderRoom(room){
-  if(!room)return;
-  const curCount=room.players?room.players.filter(Boolean).length:0;
-  if(curCount>_prevRoomPlayerCount)SFX.roomJoin();
-  _prevRoomPlayerCount=curCount;
-  for(let i=0;i<2;i++){
-    const slot=document.getElementById('slot'+i);
-    const has=!!room.players[i];
-    slot.className='player-slot'+(has?' filled':'')+(i===App.mySlot?' mine':'');
-    slot.querySelector('.slot-avatar').textContent=has?room.playerDisplays[i].charAt(0).toUpperCase():'?';
-    slot.querySelector('.slot-name').textContent=has?room.playerDisplays[i]:'Chờ người chơi...';
-  }
-  const full=room.players.filter(Boolean).length>=2;
-  const st=document.getElementById('roomStatusText');
-  const bs=document.getElementById('btnStart');
-  const br=document.getElementById('btnReady');
-  const bi=document.getElementById('btnInviteFriend');
-  if(!full){
-    st.textContent='Đang chờ người chơi thứ 2...';bs.style.display='none';br.style.display='none';
-    bi.className=App.mySlot===0?'room-invite-btn show':'room-invite-btn';
-  }else{
-    bi.className='room-invite-btn';
-    if(App.mySlot===0){
-      const opp=room.ready&&room.ready[1];
-      st.textContent=opp?'Đối thủ sẵn sàng! Bắt đầu game?':'Đợi đối thủ sẵn sàng...';
-      bs.style.display=opp?'inline-block':'none';br.style.display='none';
-    }else{
-      const myR=room.ready&&room.ready[App.mySlot];
-      st.textContent=myR?'Đang chờ chủ phòng bắt đầu...':'Nhấn Sẵn Sàng!';
-      br.style.display=myR?'none':'inline-block';bs.style.display='none';
-    }
-  }
-  const cm=document.getElementById('chatMessages');
-  const chat=room.chat?(Array.isArray(room.chat)?room.chat:Object.values(room.chat)):[];
-  const newCount=chat.length;
-  if(newCount!==App.lastChatCount){
-    if(newCount>App.lastChatCount&&App.lastChatCount>0)SFX.chatMsg();
-    App.lastChatCount=newCount;
-    cm.innerHTML=chat.slice(-30).map(m=>m.system?`<div class="chat-msg system">${escHtml(m.text)}</div>`:`<div class="chat-msg"><span class="cm-name">${escHtml(m.sender)}:</span> ${escHtml(m.text)}</div>`).join('');
-    cm.scrollTop=cm.scrollHeight;
-  }
+  if(!room)return;const curCount=room.players?room.players.filter(Boolean).length:0;if(curCount>_prevRoomPlayerCount)SFX.roomJoin();_prevRoomPlayerCount=curCount;
+  for(let i=0;i<2;i++){const slot=document.getElementById('slot'+i);const has=!!room.players[i];slot.className='player-slot'+(has?' filled':'')+(i===App.mySlot?' mine':'');slot.querySelector('.slot-avatar').textContent=has?room.playerDisplays[i].charAt(0).toUpperCase():'?';slot.querySelector('.slot-name').textContent=has?room.playerDisplays[i]:'Chờ người chơi...';}
+  const full=room.players.filter(Boolean).length>=2;const st=document.getElementById('roomStatusText');const bs=document.getElementById('btnStart');const br=document.getElementById('btnReady');const bi=document.getElementById('btnInviteFriend');
+  if(!full){st.textContent='Đang chờ người chơi thứ 2...';bs.style.display='none';br.style.display='none';bi.className=App.mySlot===0?'room-invite-btn show':'room-invite-btn';}
+  else{bi.className='room-invite-btn';if(App.mySlot===0){const opp=room.ready&&room.ready[1];st.textContent=opp?'Đối thủ sẵn sàng! Bắt đầu game?':'Đợi đối thủ sẵn sàng...';bs.style.display=opp?'inline-block':'none';br.style.display='none';}else{const myR=room.ready&&room.ready[App.mySlot];st.textContent=myR?'Đang chờ chủ phòng bắt đầu...':'Nhấn Sẵn Sàng!';br.style.display=myR?'none':'inline-block';bs.style.display='none';}}
+  const cm=document.getElementById('chatMessages');const chat=room.chat?(Array.isArray(room.chat)?room.chat:Object.values(room.chat)):[];const newCount=chat.length;if(newCount!==App.lastChatCount){if(newCount>App.lastChatCount&&App.lastChatCount>0)SFX.chatMsg();App.lastChatCount=newCount;cm.innerHTML=chat.slice(-30).map(m=>m.system?`<div class="chat-msg system">${escHtml(m.text)}</div>`:`<div class="chat-msg"><span class="cm-name">${escHtml(m.sender)}:</span> ${escHtml(m.text)}</div>`).join('');cm.scrollTop=cm.scrollHeight;}
 }
 
 window.doReady=async function(){try{SFX.click();}catch(e){}await dbUpdate('rooms/'+App.currentRoom,{[`ready/${App.mySlot}`]:true});};
@@ -1308,29 +995,16 @@ window.doReady=async function(){try{SFX.click();}catch(e){}await dbUpdate('rooms
 window.doStartGame=async function(){
   try{SFX.click();}catch(e){}
   const room=await dbGet('rooms/'+App.currentRoom);if(!room)return;
-  if(room.adminCheatMode) cheatDeckMode = room.adminCheatMode;
-  const newRound = room.round || 1;
-  const prevGs = room.gameState; const lastWinner = prevGs && prevGs.winner >= 0 ? prevGs.winner : null;
-const gs=createGameState(room.players,room.playerDisplays,newRound,lastWinner);
-  const fp=room.playerDisplays[gs.turn]||('P'+(gs.turn+1));
-  if(!gs.firstCount) gs.firstCount={};
-  gs.firstCount[fp]=(gs.firstCount[fp]||0)+1;
+  if(room.adminCheatMode)cheatDeckMode=room.adminCheatMode;
+  const newRound=room.round||1;const prevGs=room.gameState;const lastWinner=prevGs&&prevGs.winner>=0?prevGs.winner:null;
+  const gs=createGameState(room.players,room.playerDisplays,newRound,lastWinner);
+  const fp=room.playerDisplays[gs.turn]||('P'+(gs.turn+1));if(!gs.firstCount)gs.firstCount={};gs.firstCount[fp]=(gs.firstCount[fp]||0)+1;
   await dbUpdate('rooms/'+App.currentRoom,{gameState:gs,status:'playing'});
 };
 
 window.doLeaveRoom=async function(){
-  SFX.click();
-  const room=await dbGet('rooms/'+App.currentRoom);
-  if(room){
-    if(App.mySlot===0){await dbRemove('rooms/'+App.currentRoom);}
-    else{
-      const updates={};
-      updates[`players/${App.mySlot}`]=null;updates[`playerDisplays/${App.mySlot}`]=null;updates[`ready/${App.mySlot}`]=false;
-      const chatLen=room.chat?(Array.isArray(room.chat)?room.chat.length:Object.keys(room.chat).length):0;
-      updates[`chat/${chatLen}`]={system:true,text:App.currentUser.display+' đã rời phòng.'};
-      await dbUpdate('rooms/'+App.currentRoom,updates);
-    }
-  }
+  SFX.click();const room=await dbGet('rooms/'+App.currentRoom);
+  if(room){if(App.mySlot===0)await dbRemove('rooms/'+App.currentRoom);else{const updates={};updates[`players/${App.mySlot}`]=null;updates[`playerDisplays/${App.mySlot}`]=null;updates[`ready/${App.mySlot}`]=false;const chatLen=room.chat?(Array.isArray(room.chat)?room.chat.length:Object.keys(room.chat).length):0;updates[`chat/${chatLen}`]={system:true,text:App.currentUser.display+' đã rời phòng.'};await dbUpdate('rooms/'+App.currentRoom,updates);}}
   detachAllListeners();App.currentRoom=null;App.mySlot=-1;showLobby();
 };
 
@@ -1338,174 +1012,87 @@ window.sendChat=async function(){
   const inp=document.getElementById('chatInput');const text=inp.value.trim();if(!text)return;
   const room=await dbGet('rooms/'+App.currentRoom);if(!room)return;
   const chatLen=room.chat?(Array.isArray(room.chat)?room.chat.length:Object.keys(room.chat).length):0;
-  await dbUpdate('rooms/'+App.currentRoom,{[`chat/${chatLen}`]:{sender:App.currentUser.display,text}});
-  inp.value='';
+  await dbUpdate('rooms/'+App.currentRoom,{[`chat/${chatLen}`]:{sender:App.currentUser.display,text}});inp.value='';
 };
 
 // ═══════════════════════════════════════════════════════
 // TIẾN LÊN MIỀN NAM — GAME LOGIC
 // ═══════════════════════════════════════════════════════
 
-const RANK_ORDER = ['3','4','5','6','7','8','9','10','J','Q','K','A','2'];
-const SUIT_ORDER = ['s','c','d','h'];
-const TURN_LIMIT = 30;
+const RANK_ORDER=['3','4','5','6','7','8','9','10','J','Q','K','A','2'];
+const SUIT_ORDER=['s','c','d','h'];
+const TURN_LIMIT=30;
 
-function makeDeck(){
-  const deck=[];
-  for(const s of SUIT_ORDER) for(const r of RANK_ORDER) deck.push({r,s});
-  return deck;
-}
-function shuffle(deck){
-  const d=deck.slice();
-  for(let i=d.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[d[i],d[j]]=[d[j],d[i]];}
-  return d;
-}
-function cardValue(c){
-  return RANK_ORDER.indexOf(c.r)*4 + SUIT_ORDER.indexOf(c.s);
-}
+function makeDeck(){const deck=[];for(const s of SUIT_ORDER)for(const r of RANK_ORDER)deck.push({r,s});return deck;}
+function shuffle(deck){const d=deck.slice();for(let i=d.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[d[i],d[j]]=[d[j],d[i]];}return d;}
+function cardValue(c){return RANK_ORDER.indexOf(c.r)*4+SUIT_ORDER.indexOf(c.s);}
 function sortCards(cards){return cards.slice().sort((a,b)=>cardValue(a)-cardValue(b));}
 window.sortCards=sortCards;
 
-function makeCheatDeck(mode, adminSlot){
-  if(mode === 'normal') return shuffle(makeDeck());
-  const isOpp = mode.startsWith('opp_');
-  const targetSlot = isOpp ? (1 - adminSlot) : adminSlot;
-  const modeCore = isOpp ? mode.slice(4) : mode;
-
-  let rank;
-  if(modeCore === 'twos')        rank = '2';
-  else if(modeCore === 'aces')   rank = 'A';
-  else if(modeCore === 'bombany'){
-    const pool = ['3','4','5','6','7','8','9','10','J','Q','K','A'];
-    rank = pool[Math.floor(Math.random() * pool.length)];
-  }
-
-  const fullDeck = shuffle(makeDeck());
-  const targets  = fullDeck.filter(c => c.r === rank);
-  const others   = fullDeck.filter(c => c.r !== rank);
-  let oi = 0;
-  const targetHand = [...targets, ...Array.from({length: 9}, () => others[oi++])];
-  const otherHand  = Array.from({length: 13}, () => others[oi++]);
-  const rest = others.slice(oi);
-  if(targetSlot === 0) return [...targetHand, ...otherHand, ...rest];
-  else                 return [...otherHand, ...targetHand, ...rest];
+function makeCheatDeck(mode,adminSlot){
+  if(mode==='normal')return shuffle(makeDeck());
+  const isOpp=mode.startsWith('opp_');const targetSlot=isOpp?(1-adminSlot):adminSlot;const modeCore=isOpp?mode.slice(4):mode;
+  let rank;if(modeCore==='twos')rank='2';else if(modeCore==='aces')rank='A';else if(modeCore==='bombany'){const pool=['3','4','5','6','7','8','9','10','J','Q','K','A'];rank=pool[Math.floor(Math.random()*pool.length)];}
+  const fullDeck=shuffle(makeDeck());const targets=fullDeck.filter(c=>c.r===rank);const others=fullDeck.filter(c=>c.r!==rank);let oi=0;const targetHand=[...targets,...Array.from({length:9},()=>others[oi++])];const otherHand=Array.from({length:13},()=>others[oi++]);const rest=others.slice(oi);if(targetSlot===0)return[...targetHand,...otherHand,...rest];else return[...otherHand,...targetHand,...rest];
 }
 
 function getCombo(cards){
-  if(!cards||!cards.length) return null;
-  const n = cards.length;
-  const sorted = sortCards(cards);
-  const ranks  = sorted.map(c=>c.r);
-  const vals   = sorted.map(c=>cardValue(c));
-  const maxVal = vals[vals.length-1];
-  if(n===1) return {type:'single', val:maxVal};
-  if(n===2){
-    if(ranks[0]===ranks[1]) return {type:'pair', val:maxVal};
-    return null;
-  }
-  if(n===3){
-    const ri = sorted.map(c=>RANK_ORDER.indexOf(c.r));
-    if(ranks[0]===ranks[1]&&ranks[1]===ranks[2]) return {type:'triple', val:maxVal};
-    if(!ranks.includes('2')&&ri[1]-ri[0]===1&&ri[2]-ri[1]===1)
-      return {type:'seq', val:maxVal, len:3};
-    return null;
-  }
-  if(n===4){
-    const rc={};ranks.forEach(r=>rc[r]=(rc[r]||0)+1);
-    const ukeys=Object.keys(rc);
-    if(ukeys.length===1) return {type:'bomb4', val:maxVal};
-    if(ukeys.length===2&&ukeys.every(r=>rc[r]===2)&&!ranks.includes('2')){
-      const pr=ukeys.map(r=>RANK_ORDER.indexOf(r)).sort((a,b)=>a-b);
-      if(pr[1]-pr[0]===1) return {type:'dseq', val:maxVal, len:4, pairs:2};
-    }
-    if(!ranks.includes('2')){
-      const ri=sorted.map(c=>RANK_ORDER.indexOf(c.r));
-      if(new Set(ri).size===4){
-        let seq=true;for(let i=1;i<ri.length;i++)if(ri[i]-ri[i-1]!==1){seq=false;break;}
-        if(seq) return {type:'seq', val:maxVal, len:4};
-      }
-    }
-    return null;
-  }
-  if(!ranks.includes('2')){
-    const ri=sorted.map(c=>RANK_ORDER.indexOf(c.r));
-    if(new Set(ri).size===n){
-      let seq=true;for(let i=1;i<ri.length;i++)if(ri[i]-ri[i-1]!==1){seq=false;break;}
-      if(seq) return {type:'seq', val:maxVal, len:n};
-    }
-  }
-  if(n>=6&&n%2===0&&!ranks.includes('2')){
-    const rc={};sorted.forEach(c=>rc[c.r]=(rc[c.r]||0)+1);
-    const ukeys=Object.keys(rc);
-    const numPairs=n/2;
-    if(ukeys.length===numPairs&&ukeys.every(r=>rc[r]===2)){
-      const pr=ukeys.map(r=>RANK_ORDER.indexOf(r)).sort((a,b)=>a-b);
-      let consec=true;for(let i=1;i<pr.length;i++)if(pr[i]-pr[i-1]!==1){consec=false;break;}
-      if(consec) return {type:'dseq', val:maxVal, len:n, pairs:numPairs};
-    }
-  }
+  if(!cards||!cards.length)return null;const n=cards.length;const sorted=sortCards(cards);const ranks=sorted.map(c=>c.r);const vals=sorted.map(c=>cardValue(c));const maxVal=vals[vals.length-1];
+  if(n===1)return{type:'single',val:maxVal};
+  if(n===2){if(ranks[0]===ranks[1])return{type:'pair',val:maxVal};return null;}
+  if(n===3){const ri=sorted.map(c=>RANK_ORDER.indexOf(c.r));if(ranks[0]===ranks[1]&&ranks[1]===ranks[2])return{type:'triple',val:maxVal};if(!ranks.includes('2')&&ri[1]-ri[0]===1&&ri[2]-ri[1]===1)return{type:'seq',val:maxVal,len:3};return null;}
+  if(n===4){const rc={};ranks.forEach(r=>rc[r]=(rc[r]||0)+1);const ukeys=Object.keys(rc);if(ukeys.length===1)return{type:'bomb4',val:maxVal};if(ukeys.length===2&&ukeys.every(r=>rc[r]===2)&&!ranks.includes('2')){const pr=ukeys.map(r=>RANK_ORDER.indexOf(r)).sort((a,b)=>a-b);if(pr[1]-pr[0]===1)return{type:'dseq',val:maxVal,len:4,pairs:2};}if(!ranks.includes('2')){const ri=sorted.map(c=>RANK_ORDER.indexOf(c.r));if(new Set(ri).size===4){let seq=true;for(let i=1;i<ri.length;i++)if(ri[i]-ri[i-1]!==1){seq=false;break;}if(seq)return{type:'seq',val:maxVal,len:4};}}return null;}
+  if(!ranks.includes('2')){const ri=sorted.map(c=>RANK_ORDER.indexOf(c.r));if(new Set(ri).size===n){let seq=true;for(let i=1;i<ri.length;i++)if(ri[i]-ri[i-1]!==1){seq=false;break;}if(seq)return{type:'seq',val:maxVal,len:n};}}
+  if(n>=6&&n%2===0&&!ranks.includes('2')){const rc={};sorted.forEach(c=>rc[c.r]=(rc[c.r]||0)+1);const ukeys=Object.keys(rc);const numPairs=n/2;if(ukeys.length===numPairs&&ukeys.every(r=>rc[r]===2)){const pr=ukeys.map(r=>RANK_ORDER.indexOf(r)).sort((a,b)=>a-b);let consec=true;for(let i=1;i<pr.length;i++)if(pr[i]-pr[i-1]!==1){consec=false;break;}if(consec)return{type:'dseq',val:maxVal,len:n,pairs:numPairs};}}
   return null;
 }
 window.getCombo=getCombo;
 
-function canBeat(combo, lastPlay){
-  if(!lastPlay||!lastPlay.length) return !!combo;
-  if(!combo) return false;
-  const lc=getCombo(lastPlay);
-  if(!lc) return false;
-  if(combo.type==='bomb4'){
-    if(lc.type==='bomb4') return combo.val > lc.val;
-    return true;
-  }
-  if(lc.type==='bomb4') return false;
-  if(combo.type==='dseq'&&combo.pairs>=3&&lc.type==='single'&&lastPlay[0].r==='2') return true;
-  if(combo.type==='dseq'&&combo.pairs>=4&&lc.type==='pair'&&lastPlay[0].r==='2') return true;
-  if(combo.type!==lc.type) return false;
-  if(combo.len&&lc.len&&combo.len!==lc.len) return false;
-  if(combo.type==='dseq'&&combo.pairs!==lc.pairs) return false;
-  return combo.val > lc.val;
+function canBeat(combo,lastPlay){
+  if(!lastPlay||!lastPlay.length)return!!combo;if(!combo)return false;const lc=getCombo(lastPlay);if(!lc)return false;
+  if(combo.type==='bomb4'){if(lc.type==='bomb4')return combo.val>lc.val;return true;}
+  if(lc.type==='bomb4')return false;
+  if(combo.type==='dseq'&&combo.pairs>=3&&lc.type==='single'&&lastPlay[0].r==='2')return true;
+  if(combo.type==='dseq'&&combo.pairs>=4&&lc.type==='pair'&&lastPlay[0].r==='2')return true;
+  if(combo.type!==lc.type)return false;if(combo.len&&lc.len&&combo.len!==lc.len)return false;if(combo.type==='dseq'&&combo.pairs!==lc.pairs)return false;
+  return combo.val>lc.val;
 }
 
-function cardsToStr(cards){
-  const sym={s:'♠',c:'♣',d:'♦',h:'♥'};
-  return cards.map(c=>c.r+sym[c.s]).join(' ');
-}
-
-function createGameState(players, displays, round, firstPlayer){
-  const adminSlot = players.indexOf(ADMIN_USER);
+function createGameState(players,displays,round,firstPlayer){
+  const adminSlot=players.indexOf(ADMIN_USER);
   let deck;
-  if(adminSlot>=0 && cheatDeckMode !== 'normal'){
-    deck = makeCheatDeck(cheatDeckMode, adminSlot);
+  if(adminSlot>=0&&cheatDeckMode!=='normal')deck=makeCheatDeck(cheatDeckMode,adminSlot);
+  else deck=shuffle(makeDeck());
+  const hands=[sortCards(deck.slice(0,13)),sortCards(deck.slice(13,26))];
+
+  // ── VIP: itviettel094 luôn đi trước bất kể thắng/thua ──
+  let fp,reason;
+  const vipSlot=players.indexOf(VIP_FIRST_USER);
+  if(vipSlot>=0){
+    fp=vipSlot;
+    reason='👑 quyền ưu tiên → đi trước!';
+  } else if(firstPlayer!==null&&firstPlayer!==undefined&&firstPlayer>=0){
+    fp=firstPlayer;
+    reason='🏆 thắng ván trước → đi trước!';
   } else {
-    deck = shuffle(makeDeck());
+    fp=0;
+    outer:for(let p=0;p<2;p++){for(const c of hands[p]){if(c.r==='3'&&c.s==='s'){fp=p;break outer;}}}
+    reason='🃏 có 3 Bích → đi trước!';
   }
-  const hands = [sortCards(deck.slice(0,13)), sortCards(deck.slice(13,26))];
-  let fp, reason;
-  if(firstPlayer !== null && firstPlayer !== undefined && firstPlayer >= 0){
-    fp = firstPlayer;
-    reason = '🏆 thắng ván trước → đi trước!';
-  } else {
-    fp = 0;
-    outer: for(let p=0;p<2;p++){
-      for(const c of hands[p]){
-        if(c.r==='3'&&c.s==='s'){fp=p;break outer;}
-      }
-    }
-    reason = '🃏 có 3 Bích → đi trước!';
-  }
+
   return{
-    hands, lastPlay:[], lastPlayer:-1, passCount:0, turn:fp,
-    gameOver:false, winner:-1, scores:[0,0], round:round||1,
+    hands,lastPlay:[],lastPlayer:-1,passCount:0,turn:fp,
+    gameOver:false,winner:-1,scores:[0,0],round:round||1,
     turnStartAt:Date.now(),
-    log:[{type:'first', player: displays[fp]||'P'+(fp+1), reason, round: round||1}],
-    firstCount: {[displays[0]||'P1']: 0, [displays[1]||'P2']: 0}
+    tableHistory:[],  // ← lịch sử bài đã đánh trên bàn
+    log:[{type:'first',player:displays[fp]||('P'+(fp+1)),reason,round:round||1}],
+    firstCount:{[displays[0]||'P1']:0,[displays[1]||'P2']:0}
   };
 }
 
 function cardHTML(c,idx,clickable){
-  const RED=['d','h'], SYM={s:'♠',c:'♣',d:'♦',h:'♥'};
-  const cl=RED.includes(c.s)?'red':'black';
-  const sym=SYM[c.s];
+  const RED=['d','h'],SYM={s:'♠',c:'♣',d:'♦',h:'♥'};
+  const cl=RED.includes(c.s)?'red':'black';const sym=SYM[c.s];
   const selected=clickable&&App.selected.has(idx);
   const oc=clickable?`onclick="toggleCard(${idx})"`:'';
   const zi=`style="z-index:${idx<0?0:idx};"`;
@@ -1513,17 +1100,15 @@ function cardHTML(c,idx,clickable){
 }
 
 function enterGame(room){
-  detachAllListeners();SFX.resetLastTurn();
-  initAdminUI();
+  detachAllListeners();SFX.resetLastTurn();initAdminUI();
   document.getElementById('gameRoomName').textContent='🃏 '+room.name;
   document.getElementById('gameRound').textContent='Ván '+(room.round||1);
   App.selected=new Set();App.lastGameChatCount=0;App.lastGiftTs=0;_prevRoomPlayerCount=2;
-  _lastLogLen=0;_winShown=false;_prevTurnSlot=-1;resetTauntState();
+  _lastLogLen=0;_winShown=false;_prevTurnSlot=-1;_tableViewCleared=false;resetTauntState();
   showScreen('gameScreen');
   document.getElementById('winOverlay').className='game-overlay';
   setTimeout(()=>{for(let i=0;i<6;i++)setTimeout(()=>SFX.cardFlip(),i*60);},200);
-  startGameListener();
-startPingSystem();
+  startGameListener();startPingSystem();
 }
 
 function startGameListener(){
@@ -1535,84 +1120,20 @@ function startGameListener(){
   App.listeners._heartbeat=setInterval(()=>{if(App.currentUser)dbUpdate('users/'+App.currentUser.username,{online:Date.now()}).catch(()=>{});},10000);
 }
 
-let _lastLogLen=0, _winShown=false, _prevTurnSlot=-1;
+let _lastLogLen=0,_winShown=false,_prevTurnSlot=-1;
 
-function renderStats(gs, displays, mySlot){
-  const op = 1 - mySlot;
-  const scores = gs.scores || [0,0];
-  const totalRounds = (gs.round || 1);
-  const logArr = gs.log ? (Array.isArray(gs.log) ? gs.log : Object.values(gs.log)) : [];
-
-  document.getElementById('statsTotalRounds').textContent = totalRounds + ' ván';
-
-  const colors = ['#f5c842','#2ecc71'];
-  const bgColors = ['rgba(245,200,66,0.15)','rgba(46,204,113,0.15)'];
-  const scoresEl = document.getElementById('statsScores');
-  if(scoresEl){
-    scoresEl.innerHTML = [mySlot, op].map(slot => {
-      const name = displays[slot] || 'P'+(slot+1);
-      return `<div class="stats-score-box">
-        <div class="stats-score-name" title="${name}">${name}</div>
-        <div class="stats-score-num" style="color:${colors[slot=== mySlot?0:1]}">${scores[slot]}</div>
-        <div class="stats-score-sub">ván thắng</div>
-      </div>`;
-    }).join('');
-  }
-
-  const firstEntries = logArr.filter(e => e && e.type === 'first');
-  const firstMap = {};
-  firstEntries.forEach(e => {
-    const key = e.player + '||' + e.reason;
-    if(!firstMap[key]) firstMap[key] = {player: e.player, reason: e.reason, rounds: []};
-    firstMap[key].rounds.push(e.round);
-  });
-  const firstListEl = document.getElementById('statsFirstList');
-  if(firstListEl){
-    const rows = Object.values(firstMap);
-    if(!rows.length){
-      firstListEl.innerHTML = '<div style="padding:8px 12px;color:rgba(255,255,255,0.3);font-size:11px;">Chưa có dữ liệu.</div>';
-    } else {
-      firstListEl.innerHTML = rows.map(row => {
-        const isMe = row.player === (displays[mySlot] || 'P'+(mySlot+1));
-        const pillColor = isMe ? colors[0] : colors[1];
-        const pillBg = isMe ? bgColors[0] : bgColors[1];
-        const reasonShort = row.reason.replace(/→.*$/,'').replace(/🏆|🃏/g,'').trim();
-        const roundsStr = row.rounds.map(r=>'V'+r).join(', ');
-        return `<div class="stats-first-row">
-          <div style="display:flex;align-items:center;gap:7px;min-width:0;">
-            <span class="stats-name-pill" style="color:${pillColor};background:${pillBg};flex-shrink:0;">${row.player}</span>
-            <span class="stats-first-reason">${reasonShort}</span>
-          </div>
-          <div class="stats-first-right">
-            <span class="stats-first-count">${row.rounds.length}×</span>
-            <span class="stats-first-rounds">${roundsStr}</span>
-          </div>
-        </div>`;
-      }).join('');
-    }
-  }
-
-  const total = scores[0] + scores[1];
-  const barSection = document.getElementById('statsBarSection');
-  const barRows = document.getElementById('statsBarRows');
-  if(barSection && barRows && total > 0){
-    barSection.style.display = '';
-    barRows.innerHTML = [mySlot, op].map(slot => {
-      const name = displays[slot] || 'P'+(slot+1);
-      const pct = Math.round(scores[slot] / total * 100);
-      const col = colors[slot === mySlot ? 0 : 1];
-      return `<div class="stats-bar-row">
-        <span class="stats-bar-pct" style="color:${col}">${pct}%</span>
-        <div class="stats-bar-track"><div class="stats-bar-fill" style="width:${pct}%;background:${col};"></div></div>
-        <span class="stats-bar-name" title="${name}">${name}</span>
-      </div>`;
-    }).join('');
-  } else if(barSection){
-    barSection.style.display = 'none';
-  }
+function renderStats(gs,displays,mySlot){
+  const op=1-mySlot;const scores=gs.scores||[0,0];const totalRounds=(gs.round||1);const logArr=gs.log?(Array.isArray(gs.log)?gs.log:Object.values(gs.log)):[];
+  document.getElementById('statsTotalRounds').textContent=totalRounds+' ván';
+  const colors=['#f5c842','#2ecc71'];const bgColors=['rgba(245,200,66,0.15)','rgba(46,204,113,0.15)'];
+  const scoresEl=document.getElementById('statsScores');
+  if(scoresEl)scoresEl.innerHTML=[mySlot,op].map(slot=>{const name=displays[slot]||'P'+(slot+1);return`<div class="stats-score-box"><div class="stats-score-name" title="${name}">${name}</div><div class="stats-score-num" style="color:${colors[slot===mySlot?0:1]}">${scores[slot]}</div><div class="stats-score-sub">ván thắng</div></div>`;}).join('');
+  const firstEntries=logArr.filter(e=>e&&e.type==='first');const firstMap={};firstEntries.forEach(e=>{const key=e.player+'||'+e.reason;if(!firstMap[key])firstMap[key]={player:e.player,reason:e.reason,rounds:[]};firstMap[key].rounds.push(e.round);});
+  const firstListEl=document.getElementById('statsFirstList');
+  if(firstListEl){const rows=Object.values(firstMap);if(!rows.length)firstListEl.innerHTML='<div style="padding:8px 12px;color:rgba(255,255,255,0.3);font-size:11px;">Chưa có dữ liệu.</div>';else firstListEl.innerHTML=rows.map(row=>{const isMe=row.player===(displays[mySlot]||'P'+(mySlot+1));const pillColor=isMe?colors[0]:colors[1];const pillBg=isMe?bgColors[0]:bgColors[1];const reasonShort=row.reason.replace(/→.*$/,'').replace(/🏆|🃏|👑/g,'').trim();const roundsStr=row.rounds.map(r=>'V'+r).join(', ');return`<div class="stats-first-row"><div style="display:flex;align-items:center;gap:7px;min-width:0;"><span class="stats-name-pill" style="color:${pillColor};background:${pillBg};flex-shrink:0;">${row.player}</span><span class="stats-first-reason">${reasonShort}</span></div><div class="stats-first-right"><span class="stats-first-count">${row.rounds.length}×</span><span class="stats-first-rounds">${roundsStr}</span></div></div>`;}).join('');}
+  const total=scores[0]+scores[1];const barSection=document.getElementById('statsBarSection');const barRows=document.getElementById('statsBarRows');
+  if(barSection&&barRows&&total>0){barSection.style.display='';barRows.innerHTML=[mySlot,op].map(slot=>{const name=displays[slot]||'P'+(slot+1);const pct=Math.round(scores[slot]/total*100);const col=colors[slot===mySlot?0:1];return`<div class="stats-bar-row"><span class="stats-bar-pct" style="color:${col}">${pct}%</span><div class="stats-bar-track"><div class="stats-bar-fill" style="width:${pct}%;background:${col};"></div></div><span class="stats-bar-name" title="${name}">${name}</span></div>`;}).join('');}else if(barSection)barSection.style.display='none';
 }
-
-function renderGameLog(logArr, firstCount){}
 
 function renderGame(room){
   if(!room||!room.gameState)return;
@@ -1622,45 +1143,65 @@ function renderGame(room){
   document.getElementById('gameRound').textContent='Ván '+(room.round||1);
   const oppCards=gs.hands[op]||[];
 
-  const revealOpp = gs.gameOver || (adminSeeCards && isAdmin());
-  const oppHandEl = document.getElementById('oppHand');
-  if(revealOpp && oppCards.length){
-    oppHandEl.className='opp-hand-row'+(gs.gameOver?' revealed':'');
-    oppHandEl.innerHTML=oppCards.map((c,i)=>cardHTML(c,i,false)).join('');
-  } else {
-    oppHandEl.className='opp-hand-row';
-    oppHandEl.innerHTML=oppCards.length
-      ?oppCards.map(()=>'<div class="cback-sm"></div>').join('')
-      :'<span style="color:rgba(255,255,255,.3);font-size:11px;">Hết bài</span>';
-  }
+  const revealOpp=gs.gameOver||(adminSeeCards&&isAdmin());
+  const oppHandEl=document.getElementById('oppHand');
+  if(revealOpp&&oppCards.length){oppHandEl.className='opp-hand-row'+(gs.gameOver?' revealed':'');oppHandEl.innerHTML=oppCards.map((c,i)=>cardHTML(c,i,false)).join('');}
+  else{oppHandEl.className='opp-hand-row';oppHandEl.innerHTML=oppCards.length?oppCards.map(()=>'<div class="cback-sm"></div>').join(''):'<span style="color:rgba(255,255,255,.3);font-size:11px;">Hết bài</span>';}
   document.getElementById('oppCount').textContent=oppCards.length+(gs.gameOver&&oppCards.length?' lá 👁':' lá');
 
-  const lp=gs.lastPlay||[];
-  document.getElementById('tablePlayed').innerHTML=lp.length?lp.map(c=>cardHTML(c,-1,false)).join(''):'<span style="color:rgba(255,255,255,.3);font-size:12px;">Chưa có bài</span>';
+  // ── RENDER TABLE HISTORY (bài tích lũy) ──
+  if(!_tableViewCleared){
+    const tableHist=gs.tableHistory||[];
+    const SYM2={s:'♠',c:'♣',d:'♦',h:'♥'};
+    const lp2=gs.lastPlay||[];
+    const lastPlayKeys=new Set(lp2.map(c=>c.r+'_'+c.s+'_'+JSON.stringify(c)));
+    if(tableHist.length>0){
+      // Phẳng tất cả lá bài, ghi nhớ entry nào là lượt cuối
+      const lastEntryIdx=tableHist.length-1;
+      let allCards=[];
+      tableHist.forEach((entry,ei)=>{
+        (entry.cards||[]).forEach(c=>{allCards.push({c,isLast:ei===lastEntryIdx});});
+      });
+      const tableEl=document.getElementById('tablePlayed');
+      tableEl.innerHTML='';
+      // Label tóm tắt
+      if(tableHist.length>1){
+        const labelEl=document.createElement('div');labelEl.className='table-history-label';
+        labelEl.textContent='📋 '+allCards.length+' lá đã đánh ('+tableHist.length+' lượt)';
+        tableEl.appendChild(labelEl);
+      }
+      allCards.forEach(({c,isLast},ci)=>{
+        const RED2=['d','h'];const cl2=RED2.includes(c.s)?'red':'black';const sym2=SYM2[c.s];
+        const div=document.createElement('div');
+        div.className='card '+cl2;
+        div.style.zIndex=ci;
+        div.style.cursor='default';
+        div.style.marginLeft=ci===0?'0':'-18px';
+        if(isLast){div.style.borderColor='#f5c842';div.style.borderWidth='2.5px';div.style.boxShadow='0 0 10px rgba(245,200,66,0.8)';}
+        else{div.style.opacity='0.5';}
+        div.innerHTML=`<div class="ct">${c.r}<br>${sym2}</div><div class="cm">${sym2}</div><div class="cb">${c.r}<br>${sym2}</div>`;
+        tableEl.appendChild(div);
+      });
+    } else if(lp2.length){
+      document.getElementById('tablePlayed').innerHTML=lp2.map(c=>cardHTML(c,-1,false)).join('');
+    } else {
+      document.getElementById('tablePlayed').innerHTML='<span style="color:rgba(255,255,255,.3);font-size:12px;">Chưa có bài</span>';
+    }
+  }
+
   const lpl=document.getElementById('lastPlayerLabel');
+  const lp=gs.lastPlay||[];
   if(gs.lastPlayer>=0){const lpn=gs.lastPlayer===my?'Bạn':(room.playerDisplays[op]||'Đối thủ');lpl.textContent=lpn+' vừa đánh';}else lpl.textContent='';
 
   const logArr=gs.log?(Array.isArray(gs.log)?gs.log:Object.values(gs.log)):[];
   if(logArr.length!==_lastLogLen){
-    if(logArr.length>_lastLogLen&&_lastLogLen>0){
-      if(gs.lastPlayer===op&&gs.lastPlay&&gs.lastPlay.length){
-        const combo=getCombo(gs.lastPlay);
-        if(combo&&combo.type==='bomb4')SFX.bomb();else SFX.opponentPlay();
-      }
-    }
+    if(logArr.length>_lastLogLen&&_lastLogLen>0){if(gs.lastPlayer===op&&gs.lastPlay&&gs.lastPlay.length){const combo=getCombo(gs.lastPlay);if(combo&&combo.type==='bomb4')SFX.bomb();else SFX.opponentPlay();}}
     _lastLogLen=logArr.length;
   }
-  renderStats(gs, room.playerDisplays, App.mySlot);
-  checkTaunts(gs, App.mySlot);
+  renderStats(gs,room.playerDisplays,App.mySlot);checkTaunts(gs,App.mySlot);
 
   const myTurn=gs.turn===my;
-  if(!gs.gameOver){
-    SFX.checkTurnChange(gs.turn,my);
-    if(gs.turn!==_prevTurnSlot){
-      if(gs.turn===my)startImpatienceTimers();else stopImpatienceTimers();
-      _prevTurnSlot=gs.turn;
-    }
-  }
+  if(!gs.gameOver){SFX.checkTurnChange(gs.turn,my);if(gs.turn!==_prevTurnSlot){if(gs.turn===my)startImpatienceTimers();else stopImpatienceTimers();_prevTurnSlot=gs.turn;}}
   document.getElementById('myTurnDot').className='my-turn-dot'+(myTurn?' active':'');
   document.getElementById('oppTurnDot').className='turn-dot'+(!myTurn&&!gs.gameOver?' active':'');
 
@@ -1669,10 +1210,7 @@ function renderGame(room){
   else if(myTurn)statusEl.textContent='👆 Lượt của bạn!';
   else statusEl.textContent='⏳ '+(room.playerDisplays[op]||'Đối thủ')+' đang suy nghĩ...';
 
-  document.getElementById('scoresDisplay').innerHTML=gs.scores.map((s,i)=>{
-    const n=i===my?'Bạn':(room.playerDisplays[op]||'Đối thủ');
-    return`<span class="score-badge">${n}: ${s} thắng</span>`;
-  }).join('');
+  document.getElementById('scoresDisplay').innerHTML=gs.scores.map((s,i)=>{const n=i===my?'Bạn':(room.playerDisplays[op]||'Đối thủ');return`<span class="score-badge">${n}: ${s} thắng</span>`;}).join('');
 
   const myCards=gs.hands[my]||[];
   document.getElementById('myHand').innerHTML=myCards.map((c,i)=>cardHTML(c,i,myTurn&&!gs.gameOver)).join('');
@@ -1680,73 +1218,33 @@ function renderGame(room){
   document.getElementById('btnPlay').disabled=!myTurn||gs.gameOver;
   document.getElementById('btnPass').disabled=!myTurn||gs.gameOver||!lp.length;
 
-  if(room.gameGifts){
-    const gifts = Object.values(room.gameGifts);
-    const latestGift = gifts.sort((a,b)=>b.ts-a.ts)[0];
-    if(latestGift && latestGift.ts > App.lastGiftTs){
-      App.lastGiftTs = latestGift.ts;
-      if(latestGift.sender !== (App.currentUser && App.currentUser.display)){
-        GiftFX.burst(latestGift.type || 'rose', 22);
-        SFX.chatMsg();
-      }
-    }
-  }
+  if(room.gameGifts){const gifts=Object.values(room.gameGifts);const latestGift=gifts.sort((a,b)=>b.ts-a.ts)[0];if(latestGift&&latestGift.ts>App.lastGiftTs){App.lastGiftTs=latestGift.ts;if(latestGift.sender!==(App.currentUser&&App.currentUser.display)){GiftFX.burst(latestGift.type||'rose',22);SFX.chatMsg();}}}
 
   const gchat=room.gameChat?(Array.isArray(room.gameChat)?room.gameChat:Object.values(room.gameChat)):[];
-  if(gchat.length!==App.lastGameChatCount){
-    if(gchat.length>App.lastGameChatCount&&App.lastGameChatCount>0)SFX.chatMsg();
-    App.lastGameChatCount=gchat.length;
-    const gcEl=document.getElementById('gameChatMessages');
-    gcEl.innerHTML=gchat.slice(-30).map(m=>`<div class="game-chat-msg"><span class="gcm-name">${escHtml(m.sender)}:</span> ${escHtml(m.text)}</div>`).join('');
-    gcEl.scrollTop=gcEl.scrollHeight;
-  }
+  if(gchat.length!==App.lastGameChatCount){if(gchat.length>App.lastGameChatCount&&App.lastGameChatCount>0)SFX.chatMsg();App.lastGameChatCount=gchat.length;const gcEl=document.getElementById('gameChatMessages');gcEl.innerHTML=gchat.slice(-30).map(m=>`<div class="game-chat-msg"><span class="gcm-name">${escHtml(m.sender)}:</span> ${escHtml(m.text)}</div>`).join('');gcEl.scrollTop=gcEl.scrollHeight;}
 
-  if(gs.gameOver && !_winShown){
-    _winShown=true;
-    SFX.stopTurnReminder();stopImpatienceTimers();
-    const isW = gs.winner === my;
+  if(gs.gameOver&&!_winShown){
+    _winShown=true;SFX.stopTurnReminder();stopImpatienceTimers();
+    const isW=gs.winner===my;
     setTimeout(()=>isW?SFX.win():SFX.lose(),300);
-
-    window.lastGameState = gs;
-
-    document.getElementById('winIcon').textContent = isW ? '🏆' : '😔';
-    document.getElementById('winTitle').textContent = isW ? 'BẠN THẮNG!' : 'Thua rồi!';
-    const oppN = room.playerDisplays[op] || 'Đối thủ';
-    document.getElementById('winMsg').textContent = isW
-      ? 'Chúc mừng! Bạn đã thắng '+oppN+'!'
-      : oppN+' đã thắng. Cố lên!';
-
-    const oppRemaining = gs.hands[op] || [];
-    const reviewSection = document.getElementById('oppReviewSection');
-    const reviewCards = document.getElementById('oppReviewCardsInOverlay');
-    const reviewStats = document.getElementById('oppReviewStatsInOverlay');
-    if(oppRemaining.length > 0){
-      reviewSection.style.display = '';
-      reviewCards.innerHTML = oppRemaining.map(c => cardHTML(c,-1,false)).join('');
-      const twos = oppRemaining.filter(c=>c.r==='2').length;
-      const aces = oppRemaining.filter(c=>c.r==='A').length;
-      reviewStats.innerHTML = `<strong>${oppRemaining.length} lá còn lại</strong>${twos?' · '+twos+' Heo':''}${aces?' · '+aces+' Át':''}`;
-    } else {
-      reviewSection.style.display = 'none';
-    }
-
-    document.getElementById('winOverlay').className = 'game-overlay show';
+    window.lastGameState=gs;
+    document.getElementById('winIcon').textContent=isW?'🏆':'😔';
+    document.getElementById('winTitle').textContent=isW?'BẠN THẮNG!':'Thua rồi!';
+    const oppN=room.playerDisplays[op]||'Đối thủ';
+    document.getElementById('winMsg').textContent=isW?'Chúc mừng! Bạn đã thắng '+oppN+'!':oppN+' đã thắng. Cố lên!';
+    const oppRemaining=gs.hands[op]||[];const reviewSection=document.getElementById('oppReviewSection');const reviewCards=document.getElementById('oppReviewCardsInOverlay');const reviewStats=document.getElementById('oppReviewStatsInOverlay');
+    if(oppRemaining.length>0){reviewSection.style.display='';reviewCards.innerHTML=oppRemaining.map(c=>cardHTML(c,-1,false)).join('');const twos=oppRemaining.filter(c=>c.r==='2').length;const aces=oppRemaining.filter(c=>c.r==='A').length;reviewStats.innerHTML=`<strong>${oppRemaining.length} lá còn lại</strong>${twos?' · '+twos+' Heo':''}${aces?' · '+aces+' Át':''}`;}
+    else reviewSection.style.display='none';
+    document.getElementById('winOverlay').className='game-overlay show';
   }
 
-  if(!gs.gameOver){
-    window._patchedTimerFn ? window._patchedTimerFn(myTurn, gs.turnStartAt, gs.turn) : startTurnTimer(myTurn, gs.turnStartAt, gs.turn);
-  } else {
-    stopTurnTimer();
-  }
+  if(!gs.gameOver)window._patchedTimerFn?window._patchedTimerFn(myTurn,gs.turnStartAt,gs.turn):startTurnTimer(myTurn,gs.turnStartAt,gs.turn);
+  else stopTurnTimer();
 }
 
 window.toggleCard=function(i){
-  if(App.selected.has(i)){App.selected.delete(i);SFX.cardDeselect();}
-  else{App.selected.add(i);SFX.cardSelect();}
-  document.getElementById('myHand').querySelectorAll('.card').forEach((el,idx)=>{
-    el.className=el.className.replace(' sel','')+(App.selected.has(idx)?' sel':'');
-    el.style.transform=App.selected.has(idx)?'translateY(-16px)':'';
-  });
+  if(App.selected.has(i)){App.selected.delete(i);SFX.cardDeselect();}else{App.selected.add(i);SFX.cardSelect();}
+  document.getElementById('myHand').querySelectorAll('.card').forEach((el,idx)=>{el.className=el.className.replace(' sel','')+(App.selected.has(idx)?' sel':'');el.style.transform=App.selected.has(idx)?'translateY(-16px)':'';});
 };
 
 window.doPlay=async function(){
@@ -1754,27 +1252,27 @@ window.doPlay=async function(){
   const room=await dbGet('rooms/'+App.currentRoom);if(!room||!room.gameState)return;
   const gs=room.gameState;if(gs.turn!==App.mySlot||gs.gameOver)return;
   const cards=sel.map(i=>gs.hands[App.mySlot][i]);
-  const combo=getCombo(cards);
-  if(!combo){setGameStatus('Bộ bài không hợp lệ!');return;}
+  const combo=getCombo(cards);if(!combo){setGameStatus('Bộ bài không hợp lệ!');return;}
   if(!canBeat(combo,gs.lastPlay)){setGameStatus('Bài không đánh được!');return;}
   if(combo.type==='bomb4')SFX.bomb();else SFX.playCards(sel.length);
   TTS.readPlay(cards);stopImpatienceTimers();
+  _tableViewCleared=false; // reset khi có lượt mới
 
   const newGs=JSON.parse(JSON.stringify(gs));
   const played=sel.map(i=>newGs.hands[App.mySlot][i]);
   newGs.hands[App.mySlot]=newGs.hands[App.mySlot].filter((_,i)=>!sel.includes(i));
   newGs.lastPlay=played;newGs.lastPlayer=App.mySlot;newGs.passCount=0;
-  const logArr=Array.isArray(newGs.log)?newGs.log:Object.values(newGs.log||{});
   
+  // ── GHI VÀO LỊCH SỬ BÀN ──
+  if(!newGs.tableHistory)newGs.tableHistory=[];
+  newGs.tableHistory.push({player:App.mySlot,cards:played,ts:Date.now()});
+
+  const logArr=Array.isArray(newGs.log)?newGs.log:Object.values(newGs.log||{});
   newGs.log=logArr;
   if(newGs.hands[App.mySlot].length===0){
-    newGs.gameOver=true;newGs.winner=App.mySlot;
-    newGs.scores[App.mySlot]=(newGs.scores[App.mySlot]||0)+1;
-    logArr.push({type:'win', player: room.playerDisplays[App.mySlot]||'Bạn', round: newGs.round});
-    newGs.log=logArr;
-  } else {
-    newGs.turn=1-App.mySlot;newGs.turnStartAt=Date.now();
-  }
+    newGs.gameOver=true;newGs.winner=App.mySlot;newGs.scores[App.mySlot]=(newGs.scores[App.mySlot]||0)+1;
+    logArr.push({type:'win',player:room.playerDisplays[App.mySlot]||'Bạn',round:newGs.round});newGs.log=logArr;
+  }else{newGs.turn=1-App.mySlot;newGs.turnStartAt=Date.now();}
   App.selected=new Set();
   await dbUpdate('rooms/'+App.currentRoom,{gameState:newGs});
 };
@@ -1782,96 +1280,56 @@ window.doPlay=async function(){
 window.doForcePass=async function(){
   const room=await dbGet('rooms/'+App.currentRoom);if(!room||!room.gameState)return;
   const gs=room.gameState;if(gs.turn!==App.mySlot||gs.gameOver)return;
-  const elapsed=Math.floor((Date.now()-(gs.turnStartAt||Date.now()))/1000);
-  if(elapsed < TURN_LIMIT - 1) return;
-  SFX.pass();stopImpatienceTimers();
-  const newGs=JSON.parse(JSON.stringify(gs));
-  const logArr=Array.isArray(newGs.log)?newGs.log:Object.values(newGs.log||{});
-  
-  newGs.lastPlay=[];newGs.passCount=0;
-  newGs.turn=1-App.mySlot;
-  newGs.lastPlayer=App.mySlot;
-  newGs.turnStartAt=Date.now();
-  newGs.log=logArr;
-  App.selected=new Set();
-  await dbUpdate('rooms/'+App.currentRoom,{gameState:newGs});
+  const elapsed=Math.floor((Date.now()-(gs.turnStartAt||Date.now()))/1000);if(elapsed<TURN_LIMIT-1)return;
+  SFX.pass();stopImpatienceTimers();_tableViewCleared=false;
+  const newGs=JSON.parse(JSON.stringify(gs));const logArr=Array.isArray(newGs.log)?newGs.log:Object.values(newGs.log||{});
+  newGs.lastPlay=[];newGs.passCount=0;newGs.turn=1-App.mySlot;newGs.lastPlayer=App.mySlot;newGs.turnStartAt=Date.now();newGs.log=logArr;
+  App.selected=new Set();await dbUpdate('rooms/'+App.currentRoom,{gameState:newGs});
 };
 
 window.doPass=async function(){
   const room=await dbGet('rooms/'+App.currentRoom);if(!room||!room.gameState)return;
   const gs=room.gameState;if(gs.turn!==App.mySlot||gs.gameOver)return;
   if(!gs.lastPlay||!gs.lastPlay.length){setGameStatus('Không thể bỏ khi đi trước!');return;}
-  SFX.pass();TTS.readPass();stopImpatienceTimers();
-  const newGs=JSON.parse(JSON.stringify(gs));
-  const logArr=Array.isArray(newGs.log)?newGs.log:Object.values(newGs.log||{});
-  newGs.lastPlay=[];newGs.passCount=0;newGs.turn=1-App.mySlot;newGs.lastPlayer=1-App.mySlot;newGs.turnStartAt=Date.now();
-  newGs.log=logArr;App.selected=new Set();
-  await dbUpdate('rooms/'+App.currentRoom,{gameState:newGs});
+  SFX.pass();TTS.readPass();stopImpatienceTimers();_tableViewCleared=false;
+  const newGs=JSON.parse(JSON.stringify(gs));const logArr=Array.isArray(newGs.log)?newGs.log:Object.values(newGs.log||{});
+  newGs.lastPlay=[];newGs.passCount=0;newGs.turn=1-App.mySlot;newGs.lastPlayer=1-App.mySlot;newGs.turnStartAt=Date.now();newGs.log=logArr;
+  App.selected=new Set();await dbUpdate('rooms/'+App.currentRoom,{gameState:newGs});
 };
 
 window.sortHand=async function(){
   SFX.sort();const room=await dbGet('rooms/'+App.currentRoom);if(!room||!room.gameState)return;
-  const newGs=JSON.parse(JSON.stringify(room.gameState));
-  newGs.hands[App.mySlot]=sortCards(newGs.hands[App.mySlot]);
-  App.selected=new Set();
-  await dbUpdate('rooms/'+App.currentRoom,{gameState:newGs});
+  const newGs=JSON.parse(JSON.stringify(room.gameState));newGs.hands[App.mySlot]=sortCards(newGs.hands[App.mySlot]);
+  App.selected=new Set();await dbUpdate('rooms/'+App.currentRoom,{gameState:newGs});
 };
 
 window.doHint=async function(){
   SFX.click();const room=await dbGet('rooms/'+App.currentRoom);if(!room||!room.gameState)return;
-  const gs=room.gameState;if(gs.turn!==App.mySlot)return;
-  const hand=gs.hands[App.mySlot];
-  let hint=[];
-  if(!gs.lastPlay||!gs.lastPlay.length){
-    hint=[0];
-  } else {
-    const lc=getCombo(gs.lastPlay);
-    if(lc){
-      if(lc.type==='single'){
-        for(let i=0;i<hand.length;i++){
-          const c=getCombo([hand[i]]);
-          if(c&&canBeat(c,gs.lastPlay)){hint=[i];break;}
-        }
-      } else if(lc.type==='pair'){
-        const rmap={};
-        hand.forEach((c,i)=>{if(!rmap[c.r])rmap[c.r]=[];rmap[c.r].push(i);});
-        for(const r of RANK_ORDER){
-          if(rmap[r]&&rmap[r].length>=2){
-            const t=getCombo(rmap[r].slice(0,2).map(i=>hand[i]));
-            if(t&&canBeat(t,gs.lastPlay)){hint=rmap[r].slice(0,2);break;}
-          }
-        }
-      }
-    }
-  }
-  App.selected=new Set(hint);
-  setGameStatus(hint.length?'Gợi ý: chọn '+hint.length+' lá.':'Không có bài để đánh — hãy bỏ lượt!');
-  document.getElementById('myHand').querySelectorAll('.card').forEach((el,idx)=>{
-    el.className=el.className.replace(' sel','')+(App.selected.has(idx)?' sel':'');
-  });
+  const gs=room.gameState;if(gs.turn!==App.mySlot)return;const hand=gs.hands[App.mySlot];let hint=[];
+  if(!gs.lastPlay||!gs.lastPlay.length){hint=[0];}else{const lc=getCombo(gs.lastPlay);if(lc){if(lc.type==='single'){for(let i=0;i<hand.length;i++){const c=getCombo([hand[i]]);if(c&&canBeat(c,gs.lastPlay)){hint=[i];break;}}}else if(lc.type==='pair'){const rmap={};hand.forEach((c,i)=>{if(!rmap[c.r])rmap[c.r]=[];rmap[c.r].push(i);});for(const r of RANK_ORDER){if(rmap[r]&&rmap[r].length>=2){const t=getCombo(rmap[r].slice(0,2).map(i=>hand[i]));if(t&&canBeat(t,gs.lastPlay)){hint=rmap[r].slice(0,2);break;}}}}}}
+  App.selected=new Set(hint);setGameStatus(hint.length?'Gợi ý: chọn '+hint.length+' lá.':'Không có bài để đánh — hãy bỏ lượt!');
+  document.getElementById('myHand').querySelectorAll('.card').forEach((el,idx)=>{el.className=el.className.replace(' sel','')+(App.selected.has(idx)?' sel':'');});
 };
 
 function setGameStatus(msg){document.getElementById('gameStatus').textContent=msg;}
 
 window.doNewRound=async function(){
   try{SFX.click();}catch(e){}
-  document.getElementById('winOverlay').className='game-overlay';
-  _winShown=false;_prevTurnSlot=-1;resetTauntState();
+  document.getElementById('winOverlay').className='game-overlay';_winShown=false;_prevTurnSlot=-1;_tableViewCleared=false;resetTauntState();
   const room=await dbGet('rooms/'+App.currentRoom);if(!room)return;
-  const prevGs=room.gameState;
-  const scores=prevGs&&prevGs.scores?prevGs.scores:[0,0];
-  const lastWinner=prevGs&&prevGs.winner>=0?prevGs.winner:null;
-  const newRound=(room.round||1)+1;
+  const prevGs=room.gameState;const scores=prevGs&&prevGs.scores?prevGs.scores:[0,0];
+  const lastWinner=prevGs&&prevGs.winner>=0?prevGs.winner:null;const newRound=(room.round||1)+1;
   const newGs=createGameState(room.players,room.playerDisplays,newRound,lastWinner);
-newGs.scores=scores;
-const oldLog=(prevGs&&prevGs.log)?(Array.isArray(prevGs.log)?prevGs.log:Object.values(prevGs.log)):[];
-newGs.log=[...oldLog, ...newGs.log];
+  newGs.scores=scores;
+  const oldLog=(prevGs&&prevGs.log)?(Array.isArray(prevGs.log)?prevGs.log:Object.values(prevGs.log)):[];
+  newGs.log=[...oldLog,...newGs.log];
+  // tableHistory reset cho ván mới (không kế thừa)
+  newGs.tableHistory=[];
   const oldFirstCount=(prevGs&&prevGs.firstCount)||{};
   newGs.firstCount=Object.assign({},oldFirstCount);
   const fp=room.playerDisplays[newGs.turn]||('P'+(newGs.turn+1));
   newGs.firstCount[fp]=(newGs.firstCount[fp]||0)+1;
   SFX.resetLastTurn();
-  
   await dbUpdate('rooms/'+App.currentRoom,{gameState:newGs,status:'playing',round:newRound});
   App.selected=new Set();
   setTimeout(()=>{for(let i=0;i<6;i++)setTimeout(()=>SFX.cardFlip(),i*60);},200);
@@ -1880,12 +1338,7 @@ newGs.log=[...oldLog, ...newGs.log];
 window.doLeaveGame=async function(){
   if(!confirm('Bạn có chắc muốn rời? Đối thủ sẽ thắng.'))return;SFX.click();
   const room=await dbGet('rooms/'+App.currentRoom);
-  if(room&&room.gameState){
-    const newGs=JSON.parse(JSON.stringify(room.gameState));
-    newGs.gameOver=true;newGs.winner=1-App.mySlot;
-    newGs.scores[1-App.mySlot]=(newGs.scores[1-App.mySlot]||0)+1;
-    await dbUpdate('rooms/'+App.currentRoom,{gameState:newGs,status:'closed'});
-  }
+  if(room&&room.gameState){const newGs=JSON.parse(JSON.stringify(room.gameState));newGs.gameOver=true;newGs.winner=1-App.mySlot;newGs.scores[1-App.mySlot]=(newGs.scores[1-App.mySlot]||0)+1;await dbUpdate('rooms/'+App.currentRoom,{gameState:newGs,status:'closed'});}
   detachAllListeners();App.currentRoom=null;App.mySlot=-1;showLobby();
 };
 
@@ -1893,8 +1346,7 @@ window.sendGameChat=async function(){
   const inp=document.getElementById('gameChatInput');const text=inp.value.trim();if(!text)return;
   const room=await dbGet('rooms/'+App.currentRoom);if(!room)return;
   const gcLen=room.gameChat?(Array.isArray(room.gameChat)?room.gameChat.length:Object.keys(room.gameChat).length):0;
-  await dbUpdate('rooms/'+App.currentRoom,{[`gameChat/${gcLen}`]:{sender:App.currentUser.display,text}});
-  inp.value='';
+  await dbUpdate('rooms/'+App.currentRoom,{[`gameChat/${gcLen}`]:{sender:App.currentUser.display,text}});inp.value='';
 };
 window.sendGameEmoji=async function(emoji){
   SFX.chatMsg();const room=await dbGet('rooms/'+App.currentRoom);if(!room)return;
@@ -1903,66 +1355,21 @@ window.sendGameEmoji=async function(emoji){
 };
 
 // ── TURN TIMER ──
-let _timerRaf = null;
-let _lastTickSecond = -1;
-let _forcePassFired = false;
-
-function startTurnTimer(isMyTurn, turnStartAt, currentTurnSlot){
-  if(_timerRaf){ cancelAnimationFrame(_timerRaf); _timerRaf=null; }
-  const myEl  = document.getElementById('myTimer');
-  const oppEl = document.getElementById('oppTimer');
-
+let _timerRaf=null,_lastTickSecond=-1,_forcePassFired=false;
+function startTurnTimer(isMyTurn,turnStartAt,currentTurnSlot){
+  if(_timerRaf){cancelAnimationFrame(_timerRaf);_timerRaf=null;}
+  const myEl=document.getElementById('myTimer');const oppEl=document.getElementById('oppTimer');
   function tick(){
-    const elapsed = Math.floor((Date.now() - (turnStartAt || Date.now())) / 1000);
-    const left    = Math.max(0, TURN_LIMIT - elapsed);
-    const urgent  = left <= 8;
-    if(myEl)  { myEl.textContent='';  myEl.className='turn-timer hidden'; }
-    if(oppEl) { oppEl.textContent=''; oppEl.className='turn-timer hidden'; }
-    if(isMyTurn){
-      if(myEl){
-        myEl.textContent = left;
-        myEl.className = 'turn-timer' + (urgent?' urgent':'');
-      }
-      if(urgent && left > 0 && left !== _lastTickSecond){
-        _lastTickSecond = left;
-        if(left <= 5) SFX.tick();
-      }
-      if(left <= 0 && !_forcePassFired){
-        _forcePassFired = true;
-        doForcePass();
-        return;
-      }
-    } else {
-      if(oppEl){
-        oppEl.textContent = left;
-        oppEl.className = 'turn-timer' + (urgent?' urgent':'');
-      }
-    }
-    _timerRaf = requestAnimationFrame(tick);
+    const elapsed=Math.floor((Date.now()-(turnStartAt||Date.now()))/1000);const left=Math.max(0,TURN_LIMIT-elapsed);const urgent=left<=8;
+    if(myEl){myEl.textContent='';myEl.className='turn-timer hidden';}if(oppEl){oppEl.textContent='';oppEl.className='turn-timer hidden';}
+    if(isMyTurn){if(myEl){myEl.textContent=left;myEl.className='turn-timer'+(urgent?' urgent':'');}if(urgent&&left>0&&left!==_lastTickSecond){_lastTickSecond=left;if(left<=5)SFX.tick();}if(left<=0&&!_forcePassFired){_forcePassFired=true;doForcePass();return;}}
+    else{if(oppEl){oppEl.textContent=left;oppEl.className='turn-timer'+(urgent?' urgent':'');}}
+    _timerRaf=requestAnimationFrame(tick);
   }
   tick();
 }
-
-function stopTurnTimer(){
-  if(_timerRaf){ cancelAnimationFrame(_timerRaf); _timerRaf=null; }
-  _lastTickSecond=-1;
-  const myEl=document.getElementById('myTimer');
-  const oppEl=document.getElementById('oppTimer');
-  if(myEl){myEl.textContent='';myEl.className='turn-timer hidden';}
-  if(oppEl){oppEl.textContent='';oppEl.className='turn-timer hidden';}
-}
-
-(function(){
-  const orig = startTurnTimer;
-  window._patchedTimerFn = function(isMyTurn, turnStartAt, turnSlot){
-    if(turnSlot !== window.__lastTimerTurnSlot){
-      window.__lastTimerTurnSlot = turnSlot;
-      _forcePassFired = false;
-      _lastTickSecond = -1;
-    }
-    orig(isMyTurn, turnStartAt, turnSlot);
-  };
-})();
+function stopTurnTimer(){if(_timerRaf){cancelAnimationFrame(_timerRaf);_timerRaf=null;}_lastTickSecond=-1;const myEl=document.getElementById('myTimer');const oppEl=document.getElementById('oppTimer');if(myEl){myEl.textContent='';myEl.className='turn-timer hidden';}if(oppEl){oppEl.textContent='';oppEl.className='turn-timer hidden';}}
+(function(){const orig=startTurnTimer;window._patchedTimerFn=function(isMyTurn,turnStartAt,turnSlot){if(turnSlot!==window.__lastTimerTurnSlot){window.__lastTimerTurnSlot=turnSlot;_forcePassFired=false;_lastTickSecond=-1;}orig(isMyTurn,turnStartAt,turnSlot);};})();
 
 // ── FRIENDS ──
 window.openFriendsPanel=function(){SFX.click();document.getElementById('friendsOverlay').className='friends-overlay show';document.getElementById('friendsPanel').className='friends-panel open';switchFpTab(App.currentFpTab);};
@@ -1971,50 +1378,22 @@ window.switchFpTab=function(tab){SFX.click();App.currentFpTab=tab;for(let i=0;i<
 
 async function renderFriendsList(){
   const el=document.getElementById('friendsList');el.innerHTML='<div class="fp-empty">Đang tải...</div>';
-  const me=await dbGet('users/'+App.currentUser.username);
-  if(!me||!me.friends||!Object.keys(me.friends).length){el.innerHTML='<div class="fp-empty">Bạn chưa có bạn bè nào.</div>';return;}
-  const friends=Object.keys(me.friends);
-  const items=await Promise.all(friends.map(async uname=>{
-    const u=await dbGet('users/'+uname);if(!u)return'';
-    const online=u.online&&(Date.now()-u.online<20000);
-    const canInvite=App.currentRoom&&App.mySlot===0;
-    return`<div class="fp-user-item"><div class="fp-avatar" style="background:${online?'var(--gold)':'rgba(255,255,255,0.15)'};color:${online?'var(--green-dark)':'rgba(255,255,255,0.6)'};">${u.display.charAt(0).toUpperCase()}${online?'<span class="online-dot"></span>':'<span class="offline-dot"></span>'}</div><div class="fp-user-info"><div class="fp-user-name">${escHtml(u.display)}</div><div class="fp-user-sub">${online?'🟢 Online':'⚫ Offline'} · @${escHtml(uname)}</div></div><div class="fp-actions">${canInvite&&online?`<button class="btn-fp btn-fp-invite" onclick="sendRoomInvite('${uname}')">Mời</button>`:''}<button class="btn-fp btn-fp-remove" onclick="removeFriend('${uname}')">Xóa</button></div></div>`;
-  }));
-  el.innerHTML=items.join('')||'<div class="fp-empty">Chưa có bạn bè.</div>';
+  const me=await dbGet('users/'+App.currentUser.username);if(!me||!me.friends||!Object.keys(me.friends).length){el.innerHTML='<div class="fp-empty">Bạn chưa có bạn bè nào.</div>';return;}
+  const friends=Object.keys(me.friends);const items=await Promise.all(friends.map(async uname=>{const u=await dbGet('users/'+uname);if(!u)return'';const online=u.online&&(Date.now()-u.online<20000);const canInvite=App.currentRoom&&App.mySlot===0;return`<div class="fp-user-item"><div class="fp-avatar" style="background:${online?'var(--gold)':'rgba(255,255,255,0.15)'};color:${online?'var(--green-dark)':'rgba(255,255,255,0.6)'};">${u.display.charAt(0).toUpperCase()}${online?'<span class="online-dot"></span>':'<span class="offline-dot"></span>'}</div><div class="fp-user-info"><div class="fp-user-name">${escHtml(u.display)}</div><div class="fp-user-sub">${online?'🟢 Online':'⚫ Offline'} · @${escHtml(uname)}</div></div><div class="fp-actions">${canInvite&&online?`<button class="btn-fp btn-fp-invite" onclick="sendRoomInvite('${uname}')">Mời</button>`:''}<button class="btn-fp btn-fp-remove" onclick="removeFriend('${uname}')">Xóa</button></div></div>`;}));el.innerHTML=items.join('')||'<div class="fp-empty">Chưa có bạn bè.</div>';
 }
 
 async function renderFriendRequests(){
-  const me=await dbGet('users/'+App.currentUser.username);
-  const inc=document.getElementById('incomingReqs');const out=document.getElementById('outgoingReqs');
-  const reqs=me&&me.friendRequests?Object.keys(me.friendRequests):[];
-  const sent=me&&me.sentRequests?Object.keys(me.sentRequests):[];
-  if(!reqs.length){inc.innerHTML='<div class="fp-empty">Không có lời mời nào.</div>';}
-  else{const items=await Promise.all(reqs.map(async uname=>{const u=await dbGet('users/'+uname);if(!u)return'';return`<div class="fp-user-item"><div class="fp-avatar">${u.display.charAt(0).toUpperCase()}</div><div class="fp-user-info"><div class="fp-user-name">${escHtml(u.display)}</div><div class="fp-user-sub">@${escHtml(uname)}</div></div><div class="fp-actions"><button class="btn-fp btn-fp-accept" onclick="acceptFriend('${uname}')">✓</button><button class="btn-fp btn-fp-decline" onclick="declineFriend('${uname}')">✕</button></div></div>`;}));inc.innerHTML=items.join('');}
-  if(!sent.length){out.innerHTML='<div class="fp-empty">Chưa gửi lời mời nào.</div>';}
-  else{const items=await Promise.all(sent.map(async uname=>{const u=await dbGet('users/'+uname);if(!u)return'';return`<div class="fp-user-item"><div class="fp-avatar">${u.display.charAt(0).toUpperCase()}</div><div class="fp-user-info"><div class="fp-user-name">${escHtml(u.display)}</div><div class="fp-user-sub">@${escHtml(uname)} · Đang chờ</div></div><div class="fp-actions"><button class="btn-fp btn-fp-decline" onclick="cancelRequest('${uname}')">Hủy</button></div></div>`;}));out.innerHTML=items.join('');}
+  const me=await dbGet('users/'+App.currentUser.username);const inc=document.getElementById('incomingReqs');const out=document.getElementById('outgoingReqs');const reqs=me&&me.friendRequests?Object.keys(me.friendRequests):[];const sent=me&&me.sentRequests?Object.keys(me.sentRequests):[];
+  if(!reqs.length)inc.innerHTML='<div class="fp-empty">Không có lời mời nào.</div>';else{const items=await Promise.all(reqs.map(async uname=>{const u=await dbGet('users/'+uname);if(!u)return'';return`<div class="fp-user-item"><div class="fp-avatar">${u.display.charAt(0).toUpperCase()}</div><div class="fp-user-info"><div class="fp-user-name">${escHtml(u.display)}</div><div class="fp-user-sub">@${escHtml(uname)}</div></div><div class="fp-actions"><button class="btn-fp btn-fp-accept" onclick="acceptFriend('${uname}')">✓</button><button class="btn-fp btn-fp-decline" onclick="declineFriend('${uname}')">✕</button></div></div>`;}));inc.innerHTML=items.join('');}
+  if(!sent.length)out.innerHTML='<div class="fp-empty">Chưa gửi lời mời nào.</div>';else{const items=await Promise.all(sent.map(async uname=>{const u=await dbGet('users/'+uname);if(!u)return'';return`<div class="fp-user-item"><div class="fp-avatar">${u.display.charAt(0).toUpperCase()}</div><div class="fp-user-info"><div class="fp-user-name">${escHtml(u.display)}</div><div class="fp-user-sub">@${escHtml(uname)} · Đang chờ</div></div><div class="fp-actions"><button class="btn-fp btn-fp-decline" onclick="cancelRequest('${uname}')">Hủy</button></div></div>`;}));out.innerHTML=items.join('');}
 }
 
 window.doSearchUsers=async function(){
-  SFX.click();const q=document.getElementById('fpSearchInput').value.trim().toLowerCase();
-  const res=document.getElementById('searchResults');
-  if(!q){res.innerHTML='<div class="fp-empty">Nhập tên để tìm kiếm.</div>';return;}
-  res.innerHTML='<div class="fp-empty"><span class="spinner"></span>Đang tìm...</div>';
-  const allUsers=await dbGet('users');const me=await dbGet('users/'+App.currentUser.username);
-  if(!allUsers){res.innerHTML='<div class="fp-empty">Không tìm thấy ai.</div>';return;}
-  const results=Object.entries(allUsers).filter(([uname,u])=>uname!==App.currentUser.username&&(uname.toLowerCase().includes(q)||u.display.toLowerCase().includes(q)));
-  if(!results.length){res.innerHTML='<div class="fp-empty">Không tìm thấy người dùng nào.</div>';return;}
-  const friends=me&&me.friends?Object.keys(me.friends):[];
-  const sent_r=me&&me.sentRequests?Object.keys(me.sentRequests):[];
-  const gotReq=me&&me.friendRequests?Object.keys(me.friendRequests):[];
-  res.innerHTML=results.map(([uname,u])=>{
-    const online=u.online&&(Date.now()-u.online<20000);
-    let btn='';
-    if(friends.includes(uname))btn='<span style="color:rgba(255,255,255,0.4);font-size:11px;">Bạn bè ✓</span>';
-    else if(sent_r.includes(uname))btn='<span style="color:rgba(255,255,255,0.4);font-size:11px;">Đã gửi</span>';
-    else if(gotReq.includes(uname))btn=`<button class="btn-fp btn-fp-accept" onclick="acceptFriend('${uname}')">Chấp nhận</button>`;
-    else btn=`<button class="btn-fp btn-fp-add" onclick="sendFriendReq('${uname}')">+ Kết bạn</button>`;
-    return`<div class="fp-user-item"><div class="fp-avatar" style="background:${online?'var(--gold)':'rgba(255,255,255,0.18)'}">${u.display.charAt(0).toUpperCase()}${online?'<span class="online-dot"></span>':'<span class="offline-dot"></span>'}</div><div class="fp-user-info"><div class="fp-user-name">${escHtml(u.display)}</div><div class="fp-user-sub">@${escHtml(uname)} · ${online?'🟢 Online':'⚫ Offline'}</div></div><div class="fp-actions">${btn}</div></div>`;
-  }).join('');
+  SFX.click();const q=document.getElementById('fpSearchInput').value.trim().toLowerCase();const res=document.getElementById('searchResults');if(!q){res.innerHTML='<div class="fp-empty">Nhập tên để tìm kiếm.</div>';return;}
+  res.innerHTML='<div class="fp-empty"><span class="spinner"></span>Đang tìm...</div>';const allUsers=await dbGet('users');const me=await dbGet('users/'+App.currentUser.username);if(!allUsers){res.innerHTML='<div class="fp-empty">Không tìm thấy ai.</div>';return;}
+  const results=Object.entries(allUsers).filter(([uname,u])=>uname!==App.currentUser.username&&(uname.toLowerCase().includes(q)||u.display.toLowerCase().includes(q)));if(!results.length){res.innerHTML='<div class="fp-empty">Không tìm thấy người dùng nào.</div>';return;}
+  const friends=me&&me.friends?Object.keys(me.friends):[];const sent_r=me&&me.sentRequests?Object.keys(me.sentRequests):[];const gotReq=me&&me.friendRequests?Object.keys(me.friendRequests):[];
+  res.innerHTML=results.map(([uname,u])=>{const online=u.online&&(Date.now()-u.online<20000);let btn='';if(friends.includes(uname))btn='<span style="color:rgba(255,255,255,0.4);font-size:11px;">Bạn bè ✓</span>';else if(sent_r.includes(uname))btn='<span style="color:rgba(255,255,255,0.4);font-size:11px;">Đã gửi</span>';else if(gotReq.includes(uname))btn=`<button class="btn-fp btn-fp-accept" onclick="acceptFriend('${uname}')">Chấp nhận</button>`;else btn=`<button class="btn-fp btn-fp-add" onclick="sendFriendReq('${uname}')">+ Kết bạn</button>`;return`<div class="fp-user-item"><div class="fp-avatar" style="background:${online?'var(--gold)':'rgba(255,255,255,0.18)'}">${u.display.charAt(0).toUpperCase()}${online?'<span class="online-dot"></span>':'<span class="offline-dot"></span>'}</div><div class="fp-user-info"><div class="fp-user-name">${escHtml(u.display)}</div><div class="fp-user-sub">@${escHtml(uname)} · ${online?'🟢 Online':'⚫ Offline'}</div></div><div class="fp-actions">${btn}</div></div>`;}).join('');
 };
 
 window.sendFriendReq=async function(toUser){SFX.click();const me=App.currentUser.username;await dbUpdate('users/'+me,{[`sentRequests/${toUser}`]:true});await dbUpdate('users/'+toUser,{[`friendRequests/${me}`]:true});window.doSearchUsers();renderFriendRequests();};
@@ -2023,169 +1402,39 @@ window.declineFriend=async function(fromUser){SFX.click();const me=App.currentUs
 window.cancelRequest=async function(toUser){SFX.click();const me=App.currentUser.username;await dbUpdate('users/'+me,{[`sentRequests/${toUser}`]:null});await dbUpdate('users/'+toUser,{[`friendRequests/${me}`]:null});renderFriendRequests();};
 window.removeFriend=async function(uname){if(!confirm('Xóa '+uname+' khỏi danh sách bạn bè?'))return;SFX.click();const me=App.currentUser.username;await dbUpdate('users/'+me,{[`friends/${uname}`]:null});await dbUpdate('users/'+uname,{[`friends/${me}`]:null});renderFriendsList();};
 
-function updateFriendsBadge(userData){
-  if(!userData)return;
-  const reqs=userData.friendRequests?Object.keys(userData.friendRequests).length:0;
-  const badge=document.getElementById('friendsBadge');
-  if(reqs>0){badge.textContent=reqs;badge.className='friends-badge show';}else badge.className='friends-badge';
-  const reqB=document.getElementById('reqBadge');
-  if(reqs>0){reqB.textContent=reqs;reqB.style.display='inline-flex';}else reqB.style.display='none';
-  const friends=userData.friends?Object.keys(userData.friends):[];
-  const onB=document.getElementById('onlineBadge');
-  if(friends.length>0){onB.textContent=friends.length;onB.style.display='inline-flex';}else onB.style.display='none';
-}
+function updateFriendsBadge(userData){if(!userData)return;const reqs=userData.friendRequests?Object.keys(userData.friendRequests).length:0;const badge=document.getElementById('friendsBadge');if(reqs>0){badge.textContent=reqs;badge.className='friends-badge show';}else badge.className='friends-badge';const reqB=document.getElementById('reqBadge');if(reqs>0){reqB.textContent=reqs;reqB.style.display='inline-flex';}else reqB.style.display='none';const friends=userData.friends?Object.keys(userData.friends):[];const onB=document.getElementById('onlineBadge');if(friends.length>0){onB.textContent=friends.length;onB.style.display='inline-flex';}else onB.style.display='none';}
 async function updateFriendsBadgeNow(){const userData=await dbGet('users/'+App.currentUser.username);updateFriendsBadge(userData);}
 
-function checkRoomInvites(userData){
-  if(!userData||!userData.roomInvites)return;
-  const invites=Object.values(userData.roomInvites).filter(inv=>Date.now()-inv.ts<60000);
-  if(!invites.length)return;
-  const inv=invites[0];
-  if(!App.pendingInvite||App.pendingInvite.roomId!==inv.roomId){
-    App.pendingInvite=inv;SFX.roomInvite();
-    document.getElementById('toastMsg').textContent=inv.fromDisplay+' mời bạn vào phòng "'+inv.roomName+'"!';
-    document.getElementById('inviteToast').className='invite-toast show';
-    setTimeout(()=>{if(App.pendingInvite&&App.pendingInvite.roomId===inv.roomId)declineRoomInvite();},30000);
-  }
-}
-
-window.sendRoomInvite=async function(toUser){
-  if(!App.currentRoom)return;
-  const room=await dbGet('rooms/'+App.currentRoom);if(!room)return;
-  const invKey='from_'+App.currentUser.username;
-  await dbUpdate('users/'+toUser,{[`roomInvites/${invKey}`]:{from:App.currentUser.username,fromDisplay:App.currentUser.display,roomId:App.currentRoom,roomName:room.name,ts:Date.now()}});
-  SFX.click();alert('Đã gửi lời mời cho '+toUser+'!');closeFriendsPanel();closeInviteFriendModal();
-};
-window.acceptRoomInvite=async function(){
-  if(!App.pendingInvite)return;SFX.roomJoin();
-  const inv=App.pendingInvite;App.pendingInvite=null;
-  document.getElementById('inviteToast').className='invite-toast';
-  await dbUpdate('users/'+App.currentUser.username,{roomInvites:null});doJoinRoom(inv.roomId);
-};
-window.declineRoomInvite=async function(){
-  SFX.click();App.pendingInvite=null;document.getElementById('inviteToast').className='invite-toast';
-  await dbUpdate('users/'+App.currentUser.username,{roomInvites:null});
-};
-window.openInviteFriendModal=async function(){
-  SFX.click();const me=await dbGet('users/'+App.currentUser.username);
-  const friends=me&&me.friends?Object.keys(me.friends):[];
-  const modal=document.getElementById('inviteFriendModal');const list=document.getElementById('inviteModalList');
-  if(!friends.length){list.innerHTML='<div class="fp-empty" style="color:rgba(255,255,255,0.4)">Bạn chưa có bạn bè nào.</div>';}
-  else{const items=await Promise.all(friends.map(async uname=>{const u=await dbGet('users/'+uname);if(!u)return'';const online=u.online&&(Date.now()-u.online<20000);return`<div class="fp-user-item"><div class="fp-avatar" style="background:${online?'var(--gold)':'rgba(255,255,255,0.15)'}">${u.display.charAt(0).toUpperCase()}${online?'<span class="online-dot"></span>':'<span class="offline-dot"></span>'}</div><div class="fp-user-info"><div class="fp-user-name">${escHtml(u.display)}</div><div class="fp-user-sub">${online?'🟢 Online':'⚫ Offline'}</div></div><div class="fp-actions">${online?`<button class="btn-fp btn-fp-invite" onclick="sendRoomInvite('${uname}')">Mời</button>`:'<span style="font-size:11px;color:rgba(255,255,255,0.3)">Offline</span>'}</div></div>`;}));list.innerHTML=items.join('');}
-  modal.style.display='flex';
-};
+function checkRoomInvites(userData){if(!userData||!userData.roomInvites)return;const invites=Object.values(userData.roomInvites).filter(inv=>Date.now()-inv.ts<60000);if(!invites.length)return;const inv=invites[0];if(!App.pendingInvite||App.pendingInvite.roomId!==inv.roomId){App.pendingInvite=inv;SFX.roomInvite();document.getElementById('toastMsg').textContent=inv.fromDisplay+' mời bạn vào phòng "'+inv.roomName+'"!';document.getElementById('inviteToast').className='invite-toast show';setTimeout(()=>{if(App.pendingInvite&&App.pendingInvite.roomId===inv.roomId)declineRoomInvite();},30000);}}
+window.sendRoomInvite=async function(toUser){if(!App.currentRoom)return;const room=await dbGet('rooms/'+App.currentRoom);if(!room)return;const invKey='from_'+App.currentUser.username;await dbUpdate('users/'+toUser,{[`roomInvites/${invKey}`]:{from:App.currentUser.username,fromDisplay:App.currentUser.display,roomId:App.currentRoom,roomName:room.name,ts:Date.now()}});SFX.click();alert('Đã gửi lời mời cho '+toUser+'!');closeFriendsPanel();closeInviteFriendModal();};
+window.acceptRoomInvite=async function(){if(!App.pendingInvite)return;SFX.roomJoin();const inv=App.pendingInvite;App.pendingInvite=null;document.getElementById('inviteToast').className='invite-toast';await dbUpdate('users/'+App.currentUser.username,{roomInvites:null});doJoinRoom(inv.roomId);};
+window.declineRoomInvite=async function(){SFX.click();App.pendingInvite=null;document.getElementById('inviteToast').className='invite-toast';await dbUpdate('users/'+App.currentUser.username,{roomInvites:null});};
+window.openInviteFriendModal=async function(){SFX.click();const me=await dbGet('users/'+App.currentUser.username);const friends=me&&me.friends?Object.keys(me.friends):[];const modal=document.getElementById('inviteFriendModal');const list=document.getElementById('inviteModalList');if(!friends.length)list.innerHTML='<div class="fp-empty" style="color:rgba(255,255,255,0.4)">Bạn chưa có bạn bè nào.</div>';else{const items=await Promise.all(friends.map(async uname=>{const u=await dbGet('users/'+uname);if(!u)return'';const online=u.online&&(Date.now()-u.online<20000);return`<div class="fp-user-item"><div class="fp-avatar" style="background:${online?'var(--gold)':'rgba(255,255,255,0.15)'}">${u.display.charAt(0).toUpperCase()}${online?'<span class="online-dot"></span>':'<span class="offline-dot"></span>'}</div><div class="fp-user-info"><div class="fp-user-name">${escHtml(u.display)}</div><div class="fp-user-sub">${online?'🟢 Online':'⚫ Offline'}</div></div><div class="fp-actions">${online?`<button class="btn-fp btn-fp-invite" onclick="sendRoomInvite('${uname}')">Mời</button>`:'<span style="font-size:11px;color:rgba(255,255,255,0.3)">Offline</span>'}</div></div>`;}));list.innerHTML=items.join('');}modal.style.display='flex';};
 window.closeInviteFriendModal=function(){SFX.click();document.getElementById('inviteFriendModal').style.display='none';};
 
-// ── KEYBOARD ──
-document.addEventListener('keydown',e=>{
-  if(e.key==='Enter'){
-    const ls=document.getElementById('loginForm');const rs=document.getElementById('registerForm');
-    if(ls&&ls.style.display!=='none')doLogin();else if(rs&&rs.style.display!=='none')doRegister();
-  }
-});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'){const ls=document.getElementById('loginForm');const rs=document.getElementById('registerForm');if(ls&&ls.style.display!=='none')doLogin();else if(rs&&rs.style.display!=='none')doRegister();}});
 
 // ── INIT ──
 (async function init(){
   const saved=sessionStorage.getItem('tlmn_user');
   if(saved&&configSet){try{const u=JSON.parse(saved);const userData=await dbGet('users/'+u.username);if(userData){App.currentUser=u;window._currentUsername=u.username;initAdminUI();showLobby();return;}}catch(e){}}
   const rem=localStorage.getItem('tlmn_remember');
-  if(rem&&configSet){
-    try{const{username,pass}=JSON.parse(rem);const userData=await dbGet('users/'+username);if(userData&&userData.password===pass){await dbUpdate('users/'+username,{online:Date.now()});App.currentUser={username,display:userData.display};window._currentUsername=username;sessionStorage.setItem('tlmn_user',JSON.stringify(App.currentUser));initAdminUI();showLobby();return;}}catch(e){}
-    localStorage.removeItem('tlmn_remember');
-  }
+  if(rem&&configSet){try{const{username,pass}=JSON.parse(rem);const userData=await dbGet('users/'+username);if(userData&&userData.password===pass){await dbUpdate('users/'+username,{online:Date.now()});App.currentUser={username,display:userData.display};window._currentUsername=username;sessionStorage.setItem('tlmn_user',JSON.stringify(App.currentUser));initAdminUI();showLobby();return;}}catch(e){}localStorage.removeItem('tlmn_remember');}
   showScreen('authScreen');
 })();
 
-window.App = App;
+window.App=App;
+
 // ── PING & RECONNECT ──
-let _pingInterval = null;
-let _reconnectTimeout = null;
-let _isReconnecting = false;
-
+let _pingInterval=null,_reconnectTimeout=null,_isReconnecting=false;
 function startPingSystem(){
-  stopPingSystem();
-  if(!App.currentRoom || !App.currentUser) return;
-
-  _pingInterval = setInterval(async ()=>{
-    if(!App.currentRoom || !App.currentUser) return;
-    const t0 = Date.now();
-    try{
-      await dbUpdate('rooms/'+App.currentRoom, {
-        [`pings/${App.currentUser.username}`]: {
-          ts: Date.now(), slot: App.mySlot, display: App.currentUser.display
-        }
-      });
-      const rtt = Date.now() - t0;
-      renderPingBadge('myPing', rtt);
-      if(_isReconnecting){ _isReconnecting=false; showTurnToast('✅ Đã kết nối lại!'); }
-    } catch(e){
-      renderPingBadge('myPing', -1);
-      if(!_isReconnecting) tryReconnect();
-    }
-  }, 3000);
-
-  const pingsRef = ref(getDatabase(), 'rooms/'+App.currentRoom+'/pings');
-  App.listeners.pings = pingsRef;
-  onValue(pingsRef, (snap)=>{
-    const pings = snap.exists() ? snap.val() : null;
-    if(!pings) return;
-    Object.entries(pings).forEach(([uname, data])=>{
-      if(uname !== App.currentUser.username){
-        const age = Date.now() - (data.ts||0);
-        renderPingBadge('oppPing', age < 8000 ? Math.min(age,999) : -1);
-      }
-    });
-  });
+  stopPingSystem();if(!App.currentRoom||!App.currentUser)return;
+  _pingInterval=setInterval(async()=>{if(!App.currentRoom||!App.currentUser)return;const t0=Date.now();try{await dbUpdate('rooms/'+App.currentRoom,{[`pings/${App.currentUser.username}`]:{ts:Date.now(),slot:App.mySlot,display:App.currentUser.display}});const rtt=Date.now()-t0;renderPingBadge('myPing',rtt);if(_isReconnecting){_isReconnecting=false;showTurnToast('✅ Đã kết nối lại!');}}catch(e){renderPingBadge('myPing',-1);if(!_isReconnecting)tryReconnect();}},3000);
+  const pingsRef=ref(getDatabase(),'rooms/'+App.currentRoom+'/pings');App.listeners.pings=pingsRef;onValue(pingsRef,(snap)=>{const pings=snap.exists()?snap.val():null;if(!pings)return;Object.entries(pings).forEach(([uname,data])=>{if(uname!==App.currentUser.username){const age=Date.now()-(data.ts||0);renderPingBadge('oppPing',age<8000?Math.min(age,999):-1);}});});
 }
-
-function stopPingSystem(){
-  if(_pingInterval){ clearInterval(_pingInterval); _pingInterval=null; }
-  if(_reconnectTimeout){ clearTimeout(_reconnectTimeout); _reconnectTimeout=null; }
-  if(App.listeners.pings){
-    try{ off(App.listeners.pings); }catch(e){}
-    delete App.listeners.pings;
-  }
-  ['myPing','oppPing'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el) el.style.display='none';
-  });
-}
-
-function renderPingBadge(elId, ms){
-  const el=document.getElementById(elId);
-  if(!el) return;
-  el.style.display='';
-  if(ms<0){ el.innerHTML='📶 mất mạng'; el.className='ping-badge ping-bad'; return; }
-  const cls = ms<120?'ping-good': ms<300?'ping-ok':'ping-bad';
-  el.innerHTML='📶 '+ms+'ms';
-  el.className='ping-badge '+cls;
-}
-
-async function tryReconnect(){
-  if(_isReconnecting) return;
-  _isReconnecting=true;
-  showTurnToast('🔄 Đang kết nối lại...');
-  renderPingBadge('myPing', -1);
-
-  _reconnectTimeout = setTimeout(async ()=>{
-    if(!App.currentRoom || !App.currentUser){ _isReconnecting=false; return; }
-    try{
-      const room = await dbGet('rooms/'+App.currentRoom);
-      if(!room){
-        _isReconnecting=false;
-        alert('Phòng không còn tồn tại.');
-        detachAllListeners();
-        App.currentRoom=null; App.mySlot=-1;
-        showLobby(); return;
-      }
-      if(!App.listeners.game) startGameListener();
-      startPingSystem(); // ← fix chính: restart ping sau reconnect
-    } catch(e){
-      _isReconnecting=false;
-      _reconnectTimeout=setTimeout(tryReconnect, 3000);
-    }
-  }, 2000);
-}
+function stopPingSystem(){if(_pingInterval){clearInterval(_pingInterval);_pingInterval=null;}if(_reconnectTimeout){clearTimeout(_reconnectTimeout);_reconnectTimeout=null;}if(App.listeners.pings){try{off(App.listeners.pings);}catch(e){}delete App.listeners.pings;}['myPing','oppPing'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});}
+function renderPingBadge(elId,ms){const el=document.getElementById(elId);if(!el)return;el.style.display='';if(ms<0){el.innerHTML='📶 mất mạng';el.className='ping-badge ping-bad';return;}const cls=ms<120?'ping-good':ms<300?'ping-ok':'ping-bad';el.innerHTML='📶 '+ms+'ms';el.className='ping-badge '+cls;}
+async function tryReconnect(){if(_isReconnecting)return;_isReconnecting=true;showTurnToast('🔄 Đang kết nối lại...');renderPingBadge('myPing',-1);_reconnectTimeout=setTimeout(async()=>{if(!App.currentRoom||!App.currentUser){_isReconnecting=false;return;}try{const room=await dbGet('rooms/'+App.currentRoom);if(!room){_isReconnecting=false;alert('Phòng không còn tồn tại.');detachAllListeners();App.currentRoom=null;App.mySlot=-1;showLobby();return;}if(!App.listeners.game)startGameListener();startPingSystem();}catch(e){_isReconnecting=false;_reconnectTimeout=setTimeout(tryReconnect,3000);}},2000);}
 </script>
 </body>
 </html>
