@@ -770,9 +770,9 @@ const SFX=(()=>{
     sort(){[300,380,460,540].forEach((f,i)=>tone(f,'sine',0.09,0.6,i*0.04));vib(15);},
     click(){tone(660,'sine',0.05,0.5);},
     // Âm thanh mất kết nối đối thủ
-    oppDisconnect(){tone(220,'sine',0.8,0.9);tone(185,'sine',0.7,0.85,0.25);tone(155,'sine',0.6,0.8,0.5);vib([50,30,50]);},
+    oppDisconnect(name){tone(220,'sine',0.8,0.9);tone(185,'sine',0.7,0.85,0.25);tone(155,'sine',0.6,0.8,0.5);vib([50,30,50]);if(name)speakVi(name+' mất kết nối!',400);},
     // Âm thanh kết nối lại
-    oppReconnect(){tone(440,'sine',0.3,0.8);tone(554,'sine',0.3,0.75,0.1);tone(880,'sine',0.35,0.85,0.2);vib([20,10,40]);},
+    oppReconnect(name){tone(440,'sine',0.3,0.8);tone(554,'sine',0.3,0.75,0.1);tone(880,'sine',0.35,0.85,0.2);vib([20,10,40]);if(name)speakVi(name+' đã kết nối lại!',200);},
     startTurnReminder(){SFX.stopTurnReminder();SFX.yourTurn();turnBellTimeout=setTimeout(()=>{turnBellInterval=setInterval(()=>SFX.urgentBell(),5000);},8000);},
     stopTurnReminder(){if(turnBellInterval){clearInterval(turnBellInterval);turnBellInterval=null;}if(turnBellTimeout){clearTimeout(turnBellTimeout);turnBellTimeout=null;}},
     checkTurnChange(newTurn,mySlot){if(newTurn!==_lastTurn){_lastTurn=newTurn;SFX.stopTurnReminder();if(newTurn===mySlot){SFX.startTurnReminder();showTurnToast('🎴 Đến lượt bạn!');}}},
@@ -1445,8 +1445,8 @@ function startPingSystem(){
     const oppAge=now-_oppLastPingTs;
     if(oppAge>OPP_DISCONNECT_THRESHOLD&&!_oppWasDisconnected&&_oppLastPingTs>0){
       _oppWasDisconnected=true;_oppDisconnectNotified=true;
-      SFX.oppDisconnect();
       const oppName=App._cachedRoom?App._cachedRoom.playerDisplays[1-App.mySlot]:'Đối thủ';
+      SFX.oppDisconnect(oppName);
       showDisconnectToast('📶 '+oppName+' đang mất kết nối...','disconnected',0);// 0 = không tự ẩn
       renderPingBadge('oppPing',-1);
     }
@@ -1468,8 +1468,8 @@ function startPingSystem(){
           // Phát hiện kết nối lại sau khi mất
           if(_oppWasDisconnected){
             _oppWasDisconnected=false;_oppDisconnectNotified=false;
-            SFX.oppReconnect();
             const oppName=App._cachedRoom?App._cachedRoom.playerDisplays[1-App.mySlot]:'Đối thủ';
+            SFX.oppReconnect(oppName);
             showDisconnectToast('✅ '+oppName+' đã kết nối lại!','reconnected',4000);
           }
         } else {
