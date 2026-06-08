@@ -1166,7 +1166,36 @@ function autoHighlightHint(hand, lastPlay) {
 
   let hint = [];
   if (!lastPlay || !lastPlay.length) {
-    hint = [0]; // Đi trước: gợi ý lá nhỏ nhất
+    // Ưu tiên: triple > sảnh dài nhất > đôi > lá lẻ nhỏ nhất
+    const rankCount = {};
+    hand.forEach(c => { rankCount[c.r] = (rankCount[c.r] || 0) + 1; });
+
+    // 1. Tìm triple
+    const triples = findCandidates(hand, 'triple', null, null);
+    if (triples.length) { hint = triples[0].idxs || triples[0]; }
+    else {
+      // 2. Tìm sảnh dài nhất
+      let bestSeq = null;
+      for (let len = Math.min(hand.length, 12); len >= 3; len--) {
+        const seqs = findCandidates(hand, 'seq', len, null);
+        if (seqs.length) { bestSeq = seqs[0]; break; }
+      }
+      if (bestSeq) { hint = bestSeq.idxs || bestSeq; }
+      else {
+        // 3. Tìm đôi lẻ (đôi mà không phải là một phần của triple/tứ quý)
+        const pairs = findCandidates(hand, 'pair', null, null);
+        const lonePair = pairs.find(idxs => {
+          const arr = idxs.idxs || idxs;
+          return rankCount[hand[arr[0]].r] === 2;
+        });
+        if (lonePair) { hint = lonePair.idxs || lonePair; }
+        else {
+          // 4. Lá lẻ nhỏ nhất
+          const loneIdxs = hand.map((c,i) => i).filter(i => rankCount[hand[i].r] === 1);
+          hint = loneIdxs.length ? [loneIdxs[0]] : [0];
+        }
+      }
+    }
   } else {
     const lc = getCombo(lastPlay);
     if (lc) {
