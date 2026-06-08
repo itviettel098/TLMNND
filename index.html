@@ -232,7 +232,13 @@ body{font-family:'Noto Sans',sans-serif;background:var(--green-dark);min-height:
 .turn-dot.active{display:inline-block;animation:pulse 1s infinite;}
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
 .opp-count{color:rgba(255,255,255,0.5);font-size:11px;}
-.opp-hand-row{display:flex;min-height:50px;align-items:center;padding:4px 2px;flex-wrap:wrap;gap:2px;}
+.opp-hand-row{display:flex;min-height:36px;align-items:center;padding:2px;flex-wrap:wrap;gap:1px;overflow:hidden;}
+.opp-hand-row .cback-sm{width:22px;height:34px;border-radius:4px;margin-left:-10px;flex-shrink:1;}
+.opp-hand-row .cback-sm:first-child{margin-left:0;}
+.opp-hand-row .card{width:22px;height:34px;border-radius:4px;margin-left:-10px;font-size:8px;padding:2px 1px;flex-shrink:1;}
+.opp-hand-row .card:first-child{margin-left:0;}
+.opp-hand-row .card .ct,.opp-hand-row .card .cb{font-size:7px;}
+.opp-hand-row .card .cm{font-size:9px;}
 .cback-sm{width:34px;height:50px;border-radius:5px;border:1px solid #555;background:repeating-linear-gradient(45deg,#1a3a8c,#1a3a8c 4px,#2555cc 4px,#2555cc 8px);display:inline-block;flex-shrink:0;margin-left:-16px;box-shadow:1px 1px 3px rgba(0,0,0,0.4);}
 .opp-hand-row .cback-sm:first-child{margin-left:0;}
 .opp-hand-row .card{margin-left:-14px;}
@@ -328,7 +334,7 @@ body{font-family:'Noto Sans',sans-serif;background:var(--green-dark);min-height:
   color:rgba(255,255,255,0.65);font-size:11px;
 }
 
-.btn-again{width:100%;padding:12px;background:var(--green-mid);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;font-family:'Noto Sans',sans-serif;cursor:pointer;}
+.btn-again{width:auto;padding:7px 22px;background:var(--green-mid);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;font-family:'Noto Sans',sans-serif;cursor:pointer;}
 .btn-again:hover{background:var(--green-light);}
 
 /* ── TURN TIMER ── */
@@ -1450,8 +1456,8 @@ function renderGame(room){
     const winnerName=isW?myN:oppN;
     setTimeout(()=>{if(isW){SFX.win();speakVi(myN+' thắng rồi! Chúc mừng '+myN+'!',400);}else{SFX.lose();speakVi(winnerName+' thắng! '+myN+' thua rồi, cố lên!',400);}},300);
     window.lastGameState=gs;
-    document.getElementById('winIcon').textContent=isW?'🏆':'😔';
-    document.getElementById('winTitle').textContent=isW?('🏆 '+myN+' THẮNG!'):('😔 '+oppN+' thắng!');
+    document.getElementById('winIcon').textContent='';
+    document.getElementById('winTitle').textContent=isW?(myN+' THẮNG!'):(oppN+' thắng!');
     document.getElementById('winMsg').textContent=isW?'Chúc mừng '+myN+'! Bạn đã thắng '+oppN+'!':oppN+' đã thắng. '+myN+' cố lên nhé!';
     const oppRemaining=gs.hands[op]||[];const reviewSection=document.getElementById('oppReviewSection');const reviewCards=document.getElementById('oppReviewCardsInOverlay');const reviewStats=document.getElementById('oppReviewStatsInOverlay');
     if(oppRemaining.length>0){reviewSection.style.display='';reviewCards.innerHTML=oppRemaining.map(c=>cardHTML(c,-1,false)).join('');const twos=oppRemaining.filter(c=>c.r==='2').length;const aces=oppRemaining.filter(c=>c.r==='A').length;reviewStats.innerHTML=`<strong>${oppRemaining.length} lá còn lại</strong>${twos?' · '+twos+' Heo':''}${aces?' · '+aces+' Át':''}`;}
