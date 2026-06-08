@@ -1152,75 +1152,122 @@ function autoHighlightHint(hand, lastPlay) {
   _autoHintIdxs = [];
   if (!hand || !hand.length) return;
 
+  // Đếm số lần xuất hiện của mỗi rank trong tay
   const rankCount = {};
   hand.forEach(c => { rankCount[c.r] = (rankCount[c.r] || 0) + 1; });
 
+  // Lá lẻ: rank chỉ xuất hiện đúng 1 lần
+  function isLone(idx) { return rankCount[hand[idx].r] === 1; }
+
   function findCandidates(hand, targetType, targetLen, targetPairs) {
     const results = [];
-    if (targetType === 'single') { hand.forEach((_, i) => results.push([i])); }
-    else if (targetType === 'pair') { for (let i = 0; i < hand.length - 1; i++) for (let j = i + 1; j < hand.length; j++) if (hand[i].r === hand[j].r) results.push([i, j]); }
-    else if (targetType === 'triple') { for (let i = 0; i < hand.length - 2; i++) for (let j = i + 1; j < hand.length; j++) for (let k = j + 1; k < hand.length; k++) if (hand[i].r === hand[j].r && hand[j].r === hand[k].r) results.push([i, j, k]); }
-    else if (targetType === 'bomb4') { const rmap = {}; hand.forEach((c, i) => { if (!rmap[c.r]) rmap[c.r] = []; rmap[c.r].push(i); }); Object.values(rmap).forEach(idxs => { if (idxs.length >= 4) results.push(idxs.slice(0, 4)); }); }
-    else if (targetType === 'seq') { const len = targetLen; const byRank = {}; hand.forEach((c, i) => { if (c.r !== '2') { if (!byRank[c.r]) byRank[c.r] = []; byRank[c.r].push(i); } }); const avail = RANK_ORDER.filter(r => r !== '2'); for (let s = 0; s <= avail.length - len; s++) { const slice = avail.slice(s, s + len); if (slice.every(r => byRank[r])) results.push(slice.map(r => byRank[r][0])); } }
-    else if (targetType === 'dseq') { const pairs = targetPairs; const byRank = {}; hand.forEach((c, i) => { if (c.r !== '2') { if (!byRank[c.r]) byRank[c.r] = []; byRank[c.r].push(i); } }); const ranksWithPair = RANK_ORDER.filter(r => r !== '2' && byRank[r] && byRank[r].length >= 2); for (let s = 0; s <= ranksWithPair.length - pairs; s++) { const slice = ranksWithPair.slice(s, s + pairs); let consec = true; for (let i = 1; i < slice.length; i++) if (RANK_ORDER.indexOf(slice[i]) - RANK_ORDER.indexOf(slice[i-1]) !== 1) { consec = false; break; } if (consec) results.push(slice.flatMap(r => byRank[r].slice(0, 2))); } }
-    else if (targetType === 'multipair') { const pairs = targetPairs; const byRank = {}; hand.forEach((c, i) => { if (c.r !== '2') { if (!byRank[c.r]) byRank[c.r] = []; byRank[c.r].push(i); } }); const pairRanks = Object.entries(byRank).filter(([, idxs]) => idxs.length >= 2).map(([r, idxs]) => ({ r, idxs })); function combine(arr, k, start, cur) { if (cur.length === k) { results.push(cur.flatMap(x => x.idxs.slice(0, 2))); return; } for (let i = start; i < arr.length; i++) combine(arr, k, i + 1, [...cur, arr[i]]); } if (pairRanks.length >= pairs) combine(pairRanks, pairs, 0, []); }
+    if (targetType === 'single') {
+      hand.forEach((_, i) => results.push([i]));
+    } else if (targetType === 'pair') {
+      for (let i = 0; i < hand.length - 1; i++)
+        for (let j = i + 1; j < hand.length; j++)
+          if (hand[i].r === hand[j].r) results.push([i, j]);
+    } else if (targetType === 'triple') {
+      for (let i = 0; i < hand.length - 2; i++)
+        for (let j = i + 1; j < hand.length; j++)
+          for (let k = j + 1; k < hand.length; k++)
+            if (hand[i].r === hand[j].r && hand[j].r === hand[k].r) results.push([i, j, k]);
+    } else if (targetType === 'bomb4') {
+      const rmap = {};
+      hand.forEach((c, i) => { if (!rmap[c.r]) rmap[c.r] = []; rmap[c.r].push(i); });
+      Object.values(rmap).forEach(idxs => { if (idxs.length >= 4) results.push(idxs.slice(0, 4)); });
+    } else if (targetType === 'seq') {
+      const len = targetLen;
+      const byRank = {};
+      hand.forEach((c, i) => { if (c.r !== '2') { if (!byRank[c.r]) byRank[c.r] = []; byRank[c.r].push(i); } });
+      const avail = RANK_ORDER.filter(r => r !== '2');
+      for (let s = 0; s <= avail.length - len; s++) {
+        const slice = avail.slice(s, s + len);
+        if (slice.every(r => byRank[r])) results.push(slice.map(r => byRank[r][0]));
+      }
+    } else if (targetType === 'dseq') {
+      const pairs = targetPairs;
+      const byRank = {};
+      hand.forEach((c, i) => { if (c.r !== '2') { if (!byRank[c.r]) byRank[c.r] = []; byRank[c.r].push(i); } });
+      const ranksWithPair = RANK_ORDER.filter(r => r !== '2' && byRank[r] && byRank[r].length >= 2);
+      for (let s = 0; s <= ranksWithPair.length - pairs; s++) {
+        const slice = ranksWithPair.slice(s, s + pairs);
+        let consec = true;
+        for (let i = 1; i < slice.length; i++)
+          if (RANK_ORDER.indexOf(slice[i]) - RANK_ORDER.indexOf(slice[i-1]) !== 1) { consec = false; break; }
+        if (consec) results.push(slice.flatMap(r => byRank[r].slice(0, 2)));
+      }
+    } else if (targetType === 'multipair') {
+      const pairs = targetPairs;
+      const byRank = {};
+      hand.forEach((c, i) => { if (c.r !== '2') { if (!byRank[c.r]) byRank[c.r] = []; byRank[c.r].push(i); } });
+      const pairRanks = Object.entries(byRank).filter(([, idxs]) => idxs.length >= 2).map(([r, idxs]) => ({ r, idxs }));
+      function combine(arr, k, start, cur) {
+        if (cur.length === k) { results.push(cur.flatMap(x => x.idxs.slice(0, 2))); return; }
+        for (let i = start; i < arr.length; i++) combine(arr, k, i + 1, [...cur, arr[i]]);
+      }
+      if (pairRanks.length >= pairs) combine(pairRanks, pairs, 0, []);
+    }
     return results;
   }
 
-  // ── Lá lẻ: chỉ xuất hiện 1 lần trong tay (không thuộc đôi/bộ)
-  function getLoneIdxs() {
-    return hand.map((c, i) => i).filter(i => rankCount[hand[i].r] === 1);
-  }
-
-  // ── Khi đối thủ vừa đánh, kiểm tra xem mình có nên đánh hay bỏ qua
-  // Logic: nếu có thể chặn bằng bài lẻ → đánh; nếu phải dùng bài đôi/bộ → cân nhắc
-  function bestSingleToPlay(lastPlay) {
-    const lc = getCombo(lastPlay);
-    if (!lc || lc.type !== 'single') return null;
-
+  // Tìm bài đơn tốt nhất để đánh khi đối thủ đánh đơn
+  // Ưu tiên: lá lẻ nhỏ nhất chặn được → lá lẻ có cùng rank cao hơn chất → đánh 2 lẻ → bỏ qua
+  function bestSingleHint(lastPlay) {
     const lastCard = lastPlay[0];
     const lastVal = cardValue(lastCard);
 
-    // Tìm tất cả lá đơn có thể chặn, sắp theo value tăng dần
-    const allSingles = findCandidates(hand, 'single', null, null);
-    const canBeatSingles = allSingles
-      .map(idxs => ({ idxs, card: hand[idxs[0]], val: cardValue(hand[idxs[0]]) }))
+    // Tất cả lá đơn có thể chặn, sắp tăng dần theo value
+    const allSingles = hand
+      .map((c, i) => ({ i, c, val: cardValue(c) }))
       .filter(({ val }) => val > lastVal)
       .sort((a, b) => a.val - b.val);
 
-    if (!canBeatSingles.length) return null;
+    if (!allSingles.length) return []; // Không chặn được gì → bỏ lượt
 
-    // Ưu tiên 1: lá lẻ nhỏ nhất có thể chặn
-    const loneCanBeat = canBeatSingles.filter(({ idxs }) => rankCount[hand[idxs[0]].r] === 1);
-    if (loneCanBeat.length) return loneCanBeat[0].idxs;
+    // Ưu tiên 1: lá lẻ (rank xuất hiện 1 lần) nhỏ nhất chặn được
+    const loneCanBeat = allSingles.filter(({ i }) => isLone(i));
+    if (loneCanBeat.length) return [loneCanBeat[0].i];
 
-    // Không có lá lẻ nào chặn được → dùng lá trong đôi/bộ
-    // Nhưng cần kiểm tra: nếu đối thủ đánh A, mình có A cao hơn chất không?
-    const myBest = canBeatSingles[0]; // nhỏ nhất có thể chặn
-    const myCard = myBest.card;
+    // Không có lá lẻ nào chặn được
+    // Ưu tiên 2: nếu cần dùng bài trong đôi/bộ → kiểm tra xem có đáng không
 
-    // Nếu đối thủ đánh A, xem chất mình có hơn không
+    // Nếu đối thủ đánh A: tìm A chất cao hơn của mình
     if (lastCard.r === 'A') {
-      // Tìm A của mình cao hơn
-      const myAces = canBeatSingles.filter(({ card }) => card.r === 'A');
-      if (myAces.length) return myAces[0].idxs; // A chất cao hơn
-      // Không có A cao hơn → đánh 2 nếu có lá 2 lẻ
-      const my2s = canBeatSingles.filter(({ card }) => card.r === '2');
-      const lone2s = my2s.filter(({ idxs }) => rankCount[hand[idxs[0]].r] === 1);
-      if (lone2s.length) return lone2s[0].idxs;
-      if (my2s.length) return my2s[0].idxs;
-      return null; // Bỏ qua, giữ bài
+      const myAces = allSingles.filter(({ c }) => c.r === 'A');
+      if (myAces.length) {
+        // Ưu tiên A lẻ, nếu không có thì dùng A trong đôi
+        const loneAce = myAces.find(({ i }) => isLone(i));
+        return [loneAce ? loneAce.i : myAces[0].i];
+      }
+      // Không có A cao hơn → dùng 2 nếu có
+      const my2s = allSingles.filter(({ c }) => c.r === '2');
+      if (my2s.length) {
+        const lone2 = my2s.find(({ i }) => isLone(i));
+        return [lone2 ? lone2.i : my2s[0].i];
+      }
+      return []; // Bỏ lượt
     }
 
-    // Với các rank khác: nếu chỉ có thể chặn bằng bài trong đôi/bộ → bỏ qua (trả về null)
-    // Trừ khi bài đó là lẻ hoặc đã xác định nên đánh
-    return null; // Mặc định bỏ qua nếu không có lá lẻ
+    // Với rank khác (không phải A): nếu chỉ có thể chặn bằng bài trong đôi/bộ → bỏ lượt
+    // Trừ trường hợp đối thủ đánh 2 → phải dùng 2 chất cao hơn hoặc bỏ
+    if (lastCard.r === '2') {
+      const my2s = allSingles.filter(({ c }) => c.r === '2');
+      if (my2s.length) {
+        const lone2 = my2s.find(({ i }) => isLone(i));
+        return [lone2 ? lone2.i : my2s[0].i];
+      }
+      return []; // Không có 2 cao hơn → bỏ lượt
+    }
+
+    // Rank thường (3..K): nếu chỉ có thể dùng bài trong đôi/bộ → bỏ lượt
+    return [];
   }
 
   let hint = [];
 
   if (!lastPlay || !lastPlay.length) {
-    // ── ĐI TRƯỚC: ưu tiên triple > sảnh dài nhất > đôi lẻ > lá lẻ nhỏ nhất
+    // ── ĐI TRƯỚC: triple > sảnh dài nhất > đôi lẻ > lá lẻ nhỏ nhất (không phải 2)
 
     // 1. Triple
     const triples = findCandidates(hand, 'triple', null, null);
@@ -1242,14 +1289,11 @@ function autoHighlightHint(hand, lastPlay) {
         if (lonePair) {
           hint = lonePair;
         } else {
-          // 4. Lá lẻ nhỏ nhất (không phải 2)
-          const loneIdxs = getLoneIdxs().filter(i => hand[i].r !== '2');
-          if (loneIdxs.length) hint = [loneIdxs[0]];
-          else {
-            // Toàn 2 hoặc không lẻ → lá nhỏ nhất
-            const loneAll = getLoneIdxs();
-            hint = loneAll.length ? [loneAll[0]] : [0];
-          }
+          // 4. Lá lẻ nhỏ nhất, ưu tiên không phải 2
+          const loneIdxs = hand.map((c, i) => i).filter(i => isLone(i));
+          const loneNot2A = loneIdxs.filter(i => hand[i].r !== '2' && hand[i].r !== 'A');
+          const loneNot2 = loneIdxs.filter(i => hand[i].r !== '2');
+          hint = loneNot2A.length ? [loneNot2A[0]] : (loneNot2.length ? [loneNot2[0]] : (loneIdxs.length ? [loneIdxs[0]] : [0]));
         }
       }
     }
@@ -1257,15 +1301,14 @@ function autoHighlightHint(hand, lastPlay) {
   } else {
     // ── ĐỐI THỦ VỪA ĐÁNH
     const lc = getCombo(lastPlay);
-    if (!lc) { applyAutoHint(); return; }
+    if (!lc) { _autoHintIdxs = []; applyAutoHint(); return; }
 
     if (lc.type === 'single') {
-      // Dùng logic thông minh cho đơn
-      const best = bestSingleToPlay(lastPlay);
-      hint = best || [];
+      // Logic thông minh cho đơn
+      hint = bestSingleHint(lastPlay);
 
     } else {
-      // Đôi, triple, sảnh, v.v. → tìm bài cùng loại nhỏ nhất chặn được
+      // Đôi, triple, sảnh, multipair, dseq
       const candidates = findCandidates(hand, lc.type, lc.len, lc.pairs);
       const valid = candidates
         .map(idxs => ({ idxs, cards: idxs.map(i => hand[i]) }))
@@ -1275,12 +1318,12 @@ function autoHighlightHint(hand, lastPlay) {
       if (valid.length) {
         hint = valid[0].idxs;
       } else {
-        // Thử bomb
+        // Thử bomb4
         const bombs = findCandidates(hand, 'bomb4', 4, null)
           .map(idxs => ({ idxs, cards: idxs.map(i => hand[i]) }))
           .filter(({ cards }) => { const c = getCombo(cards); return c && canBeat(c, lastPlay); });
-        if (bombs.length) hint = bombs[0].idxs;
-        // Không chặn được → hint rỗng = gợi ý bỏ lượt
+        hint = bombs.length ? bombs[0].idxs : [];
+        // hint rỗng = gợi ý bỏ lượt
       }
     }
   }
@@ -1422,6 +1465,8 @@ function renderGame(room){
 
 window.toggleCard=function(i){
   if(App.selected.has(i)){App.selected.delete(i);SFX.cardDeselect();}else{App.selected.add(i);SFX.cardSelect();}
+  // Người chơi đã tự chọn bài → tắt toàn bộ auto-hint
+  _autoHintIdxs=[];
   document.getElementById('myHand').querySelectorAll('.card').forEach((el,idx)=>{
     const isHint=_autoHintIdxs.includes(idx);
     const isSel=App.selected.has(idx);
