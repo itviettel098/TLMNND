@@ -588,12 +588,26 @@ body{font-family:'Noto Sans',sans-serif;background:var(--green-dark);min-height:
           <span id="myNameLabel">Bạn</span>
           <span class="turn-timer hidden" id="myTimer"></span>
           <span class="ping-badge" id="myPing" style="display:none"></span>
+          <label id="hintToggleWrap" style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;user-select:none;margin-left:4px;padding:2px 8px;background:rgba(0,0,0,0.2);border-radius:20px;border:1px solid rgba(255,255,255,0.12);">
+            <span style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.9);" id="hintLabel">💡</span>
+            <div id="hintToggleTrack" style="position:relative;width:28px;height:16px;background:#16a34a;border-radius:8px;transition:background .2s;flex-shrink:0;">
+              <input type="checkbox" id="hintToggle" checked onchange="onHintToggle(this.checked)" style="position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;margin:0;">
+              <span id="hintToggleThumb" style="position:absolute;top:2px;left:2px;width:12px;height:12px;background:#fff;border-radius:50%;transition:transform .2s;pointer-events:none;transform:translateX(12px);"></span>
+            </div>
+          </label>
         </div>
         <div class="my-count" id="myCount">-- lá</div>
       </div>
       <div class="hand-row" id="myHand"></div>
       <div class="controls">
         <button class="btn-ctrl btn-sort" onclick="sortHand()">Sắp xếp</button>
+        <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;user-select:none;padding:4px 8px;background:rgba(0,0,0,0.2);border-radius:8px;border:1px solid rgba(255,255,255,0.15);">
+          <span style="color:rgba(255,255,255,0.6);font-size:11px;font-weight:700;" id="hintLabel">💡 Gợi ý</span>
+          <div id="hintToggleTrack" style="position:relative;width:36px;height:20px;background:#555;border-radius:10px;transition:background .2s;">
+            <input type="checkbox" id="hintToggle" checked onchange="onHintToggle(this.checked)" style="position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;margin:0;">
+            <span id="hintToggleThumb" style="position:absolute;top:2px;left:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:transform .2s;pointer-events:none;"></span>
+          </div>
+        </label>
         <button class="btn-ctrl btn-play" id="btnPlay" onclick="doPlay()">Đánh bài</button>
         <button class="btn-ctrl btn-pass" id="btnPass" onclick="doPass()">Bỏ lượt</button>
         <button class="btn-ctrl btn-clear-table" onclick="clearTableView()">🗑 Xóa bàn</button>
@@ -1153,6 +1167,96 @@ function renderStats(gs,displays,mySlot){
 
 // ── AUTO HIGHLIGHT BÀI GỢI Ý KHI ĐẾN LƯỢT ──
 let _autoHintIdxs = [];
+let _hintEnabled = true;
+
+window.onHintToggle = function(checked) {
+  _hintEnabled = checked;
+  const track = document.getElementById('hintToggleTrack');
+  const thumb = document.getElementById('hintToggleThumb');
+  const label = document.getElementById('hintLabel');
+  if (checked) {
+    track.style.background = '#16a34a';
+    thumb.style.transform = 'translateX(16px)';
+    label.style.color = 'rgba(255,255,255,0.9)';
+  } else {
+    track.style.background = '#555';
+    thumb.style.transform = 'translateX(0)';
+    label.style.color = 'rgba(255,255,255,0.4)';
+    clearAutoHint();
+  }
+};
+let _hintEnabled = true;
+
+window.onHintToggle = function(checked) {
+  _hintEnabled = checked;
+  const track = document.getElementById('hintToggleTrack');
+  const thumb = document.getElementById('hintToggleThumb');
+  const label = document.getElementById('hintLabel');
+  if (checked) {
+    track.style.background = '#16a34a';
+    thumb.style.transform = 'translateX(16px)';
+    label.style.color = 'rgba(255,255,255,0.9)';
+  } else {
+    track.style.background = '#555';
+    thumb.style.transform = 'translateX(0)';
+    label.style.color = 'rgba(255,255,255,0.4)';
+    clearAutoHint();
+  }
+};
+let _hintEnabled = true;
+
+window.onHintToggle = function(checked) {
+  _hintEnabled = checked;
+  const track = document.getElementById('hintToggleTrack');
+  const thumb = document.getElementById('hintToggleThumb');
+  const label = document.getElementById('hintLabel');
+  if (checked) {
+    track.style.background = '#16a34a';
+    thumb.style.transform = 'translateX(16px)';
+    label.style.color = 'rgba(255,255,255,0.9)';
+  } else {
+    track.style.background = '#555';
+    thumb.style.transform = 'translateX(0)';
+    label.style.color = 'rgba(255,255,255,0.4)';
+    clearAutoHint();
+  }
+};
+let _hintEnabled = true;
+
+window.onHintToggle = function(checked) {
+  _hintEnabled = checked;
+  const track = document.getElementById('hintToggleTrack');
+  const thumb = document.getElementById('hintToggleThumb');
+  const label = document.getElementById('hintLabel');
+  if (checked) {
+    track.style.background = '#16a34a';
+    thumb.style.transform = 'translateX(16px)';
+    label.style.color = 'rgba(255,255,255,0.9)';
+  } else {
+    track.style.background = '#555';
+    thumb.style.transform = 'translateX(0)';
+    label.style.color = 'rgba(255,255,255,0.4)';
+    clearAutoHint();
+  }
+};
+let _hintEnabled = true;
+
+window.onHintToggle = function(checked) {
+  _hintEnabled = checked;
+  const track = document.getElementById('hintToggleTrack');
+  const thumb = document.getElementById('hintToggleThumb');
+  const label = document.getElementById('hintLabel');
+  if (checked) {
+    track.style.background = '#16a34a';
+    thumb.style.transform = 'translateX(16px)';
+    label.style.color = 'rgba(255,255,255,0.9)';
+  } else {
+    track.style.background = '#555';
+    thumb.style.transform = 'translateX(0)';
+    label.style.color = 'rgba(255,255,255,0.4)';
+    clearAutoHint();
+  }
+};
 
 function autoHighlightHint(hand, lastPlay) {
   _autoHintIdxs = [];
@@ -1421,7 +1525,7 @@ function renderGame(room){
   const myTurn=gs.turn===my;
 
   // Auto-highlight gợi ý khi đến lượt (sau khi render xong hand)
-  if(myTurn && !gs.gameOver) {
+  if(myTurn && !gs.gameOver && _hintEnabled) {
     setTimeout(() => autoHighlightHint(gs.hands[App.mySlot]||[], gs.lastPlay||[]), 100);
   } else {
     clearAutoHint();
