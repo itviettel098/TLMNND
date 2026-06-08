@@ -1289,17 +1289,21 @@ function autoHighlightHint(hand, lastPlay) {
       if (bestSeq) {
         hint = bestSeq;
       } else {
-        // 3. Đôi lẻ (rank chỉ có đúng 2 lá, không phải 3+)
-        const pairs = findCandidates(hand, 'pair', null, null);
-        const lonePair = pairs.find(idxs => rankCount[hand[idxs[0]].r] === 2);
-        if (lonePair) {
-          hint = lonePair;
+        // 3. Lá lẻ nhỏ nhất trước (không phải A, không phải 2)
+        const loneIdxs = hand.map((c, i) => i).filter(i => isLone(i));
+        const loneNot2A = loneIdxs.filter(i => hand[i].r !== '2' && hand[i].r !== 'A');
+        const loneNot2 = loneIdxs.filter(i => hand[i].r !== '2');
+        if (loneNot2A.length) {
+          hint = [loneNot2A[0]];
+        } else if (loneNot2.length) {
+          hint = [loneNot2[0]];
+        } else if (loneIdxs.length) {
+          hint = [loneIdxs[0]];
         } else {
-          // 4. Lá lẻ nhỏ nhất, ưu tiên không phải 2
-          const loneIdxs = hand.map((c, i) => i).filter(i => isLone(i));
-          const loneNot2A = loneIdxs.filter(i => hand[i].r !== '2' && hand[i].r !== 'A');
-          const loneNot2 = loneIdxs.filter(i => hand[i].r !== '2');
-          hint = loneNot2A.length ? [loneNot2A[0]] : (loneNot2.length ? [loneNot2[0]] : (loneIdxs.length ? [loneIdxs[0]] : [0]));
+          // 4. Không có lá lẻ nào → mới đánh đôi nhỏ nhất
+          const pairs = findCandidates(hand, 'pair', null, null);
+          const lonePair = pairs.find(idxs => rankCount[hand[idxs[0]].r] === 2);
+          hint = lonePair ? lonePair : (pairs.length ? pairs[0] : [0]);
         }
       }
     }
