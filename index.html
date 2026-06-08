@@ -1175,7 +1175,15 @@ function autoHighlightHint(hand, lastPlay) {
         .filter(({ cards }) => { const c = getCombo(cards); return c && canBeat(c, lastPlay); })
         .sort((a, b) => getCombo(a.cards).val - getCombo(b.cards).val);
       if (valid.length) {
-        hint = valid[0].idxs;
+        // Ưu tiên lá lẻ (không nằm trong đôi/bộ nào) trước
+        if (lc.type === 'single') {
+          const rankCount = {};
+          hand.forEach(c => { rankCount[c.r] = (rankCount[c.r] || 0) + 1; });
+          const loneCards = valid.filter(({ idxs }) => rankCount[hand[idxs[0]].r] === 1);
+          hint = (loneCards.length ? loneCards : valid)[0].idxs;
+        } else {
+          hint = valid[0].idxs;
+        }
       } else {
         // Thử bomb
         const bombs = findCandidates(hand, 'bomb4', 4, null)
