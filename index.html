@@ -1336,7 +1336,7 @@ window.toggleCard=function(i){
 };
 
 window.doPlay=async function(){
-  const sel=Array.from(App.selected);if(!sel.length){setGameStatus('Hãy chọn bài trước!');return;}
+  let sel=Array.from(App.selected); if(!sel.length){   if(_autoHintIdxs.length){sel=[..._autoHintIdxs];}   else{setGameStatus('Hãy chọn bài trước!');return;} }
   const room=App._cachedRoom||await dbGet('rooms/'+App.currentRoom);if(!room||!room.gameState)return;
   const gs=room.gameState;if(gs.turn!==App.mySlot||gs.gameOver)return;
   const cards=sel.map(i=>gs.hands[App.mySlot][i]);
