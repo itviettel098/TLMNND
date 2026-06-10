@@ -1366,9 +1366,9 @@ function autoHighlightHint(hand, lastPlay) {
       // Ưu tiên 3: lá lẻ 2 (nếu chỉ còn lá 2 lẻ)
       hint = [loneIdxs[0]];
     } else {
-      // Không có lá lẻ nào → dùng sảnh hoặc đôi/triple nhỏ nhất
+      // Không còn lá lẻ nào → tìm sảnh dài nhất (bắt đầu từ toàn bộ tay bài)
       let bestSeq = null;
-      for (let len = Math.min(hand.length, 12); len >= 3; len--) {
+      for (let len = hand.length; len >= 3; len--) {
         const seqs = findCandidates(hand, 'seq', len, null);
         if (seqs.length) { bestSeq = seqs[0]; break; }
       }
@@ -1380,7 +1380,6 @@ function autoHighlightHint(hand, lastPlay) {
           hint = triples[0];
         } else {
           const pairs = findCandidates(hand, 'pair', null, null);
-          // Ưu tiên đôi không phải 2
           const nonTwoPair = pairs.find(idxs => hand[idxs[0]].r !== '2');
           hint = nonTwoPair ? nonTwoPair : (pairs.length ? pairs[0] : [0]);
         }
