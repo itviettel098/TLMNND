@@ -1073,7 +1073,7 @@ function makeCheatDeck(mode,adminSlot){
     // Lấy 1 lá thường (không trùng) để đủ 13 lá
     const usedKeys=new Set(straightCards.map(c=>c.r+'_'+c.s));
     const fullDeck=shuffle(makeDeck());
-    const filler=fullDeck.find(c=>!usedKeys.has(c.r+'_'+c.s)&&c.r!=='2');
+    const filler={r:'2',s:'h'};
     const targetHand=sortCards([...straightCards,filler||{r:'3',s:'c'}]);
     // Bộ bài còn lại cho đối thủ và dư
     const remaining=fullDeck.filter(c=>!targetHand.some(t=>t.r===c.r&&t.s===c.s));
