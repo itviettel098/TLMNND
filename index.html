@@ -393,6 +393,7 @@ body{font-family:'Noto Sans',sans-serif;background:var(--green-dark);min-height:
     <button class="btn-cheat btn-cheat-twos" onclick="setCheatDeck('twos')" id="btnCheatTwos">4 lá 2</button>
     <button class="btn-cheat btn-cheat-aces" onclick="setCheatDeck('aces')" id="btnCheatAces">4 lá A</button>
     <button class="btn-cheat" style="background:linear-gradient(135deg,#6b1a8c,#9933cc);color:#fff;" onclick="setCheatDeck('bombany')" id="btnCheatBombAny">💣 Tứ quý bất kỳ</button>
+    <button class="btn-cheat" style="background:linear-gradient(135deg,#0d5c4a,#12916e);color:#fff;" onclick="setCheatDeck('straight12')" id="btnCheatStraight12">🎯 Sảnh 3→A</button>
     <button class="btn-cheat btn-cheat-off" onclick="setCheatDeck('normal')" id="btnCheatNormal">Bình thường</button>
   </div>
   <div class="cheat-section">🎴 ĐỐI THỦ nhận:</div>
@@ -400,6 +401,7 @@ body{font-family:'Noto Sans',sans-serif;background:var(--green-dark);min-height:
     <button class="btn-cheat btn-cheat-opp-twos" onclick="setOppCheatDeck('twos')" id="btnCheatOppTwos">4 lá 2</button>
     <button class="btn-cheat btn-cheat-opp-aces" onclick="setOppCheatDeck('aces')" id="btnCheatOppAces">4 lá A</button>
     <button class="btn-cheat" style="background:linear-gradient(135deg,#8c3300,#cc5500);color:#fff;" onclick="setOppCheatDeck('bombany')" id="btnCheatOppBombAny">💣 Tứ quý bất kỳ</button>
+    <button class="btn-cheat" style="background:linear-gradient(135deg,#1a4d6b,#2577a8);color:#fff;" onclick="setOppCheatDeck('straight12')" id="btnCheatOppStraight12">🎯 Sảnh 3→A</button>
     <button class="btn-cheat btn-cheat-off" onclick="setOppCheatDeck('normal')" id="btnCheatOppNormal">Bình thường</button>
   </div>
   <div style="color:rgba(255,215,0,0.5);font-size:10px;text-align:center;" id="cheatStatus">Chế độ bình thường</div>
@@ -719,14 +721,17 @@ function initAdminUI(){
 function updateCheatUI(){
   const labels={
     'normal':'Chế độ bình thường','twos':'🃏 BẠN nhận: 4 lá 2','aces':'🃏 BẠN nhận: 4 lá Át',
-    'bombany':'💣 BẠN nhận: Tứ quý bất kỳ','opp_twos':'🃏 ĐỐI THỦ nhận: 4 lá 2',
-    'opp_aces':'🃏 ĐỐI THỦ nhận: 4 lá Át','opp_bombany':'💣 ĐỐI THỦ nhận: Tứ quý bất kỳ',
+    'bombany':'💣 BẠN nhận: Tứ quý bất kỳ','straight12':'🎯 BẠN nhận: Sảnh 3→A',
+    'opp_twos':'🃏 ĐỐI THỦ nhận: 4 lá 2','opp_aces':'🃏 ĐỐI THỦ nhận: 4 lá Át',
+    'opp_bombany':'💣 ĐỐI THỦ nhận: Tứ quý bất kỳ','opp_straight12':'🎯 ĐỐI THỦ nhận: Sảnh 3→A',
   };
   document.getElementById('cheatStatus').textContent = labels[cheatDeckMode] || 'Bình thường';
   document.querySelectorAll('.btn-cheat').forEach(el => el.style.outline='none');
   const activeMap={
     'normal':'btnCheatNormal','twos':'btnCheatTwos','aces':'btnCheatAces','bombany':'btnCheatBombAny',
+    'straight12':'btnCheatStraight12',
     'opp_twos':'btnCheatOppTwos','opp_aces':'btnCheatOppAces','opp_bombany':'btnCheatOppBombAny',
+    'opp_straight12':'btnCheatOppStraight12',
   };
   const activeId = activeMap[cheatDeckMode];
   if(activeId){ const el=document.getElementById(activeId); if(el) el.style.outline='2px solid #ffd700'; }
@@ -1055,9 +1060,46 @@ window.sortCards=sortCards;
 
 function makeCheatDeck(mode,adminSlot){
   if(mode==='normal')return shuffle(makeDeck());
-  const isOpp=mode.startsWith('opp_');const targetSlot=isOpp?(1-adminSlot):adminSlot;const modeCore=isOpp?mode.slice(4):mode;
-  let rank;if(modeCore==='twos')rank='2';else if(modeCore==='aces')rank='A';else if(modeCore==='bombany'){const pool=['3','4','5','6','7','8','9','10','J','Q','K','A'];rank=pool[Math.floor(Math.random()*pool.length)];}
-  const fullDeck=shuffle(makeDeck());const targets=fullDeck.filter(c=>c.r===rank);const others=fullDeck.filter(c=>c.r!==rank);let oi=0;const targetHand=[...targets,...Array.from({length:9},()=>others[oi++])];const otherHand=Array.from({length:13},()=>others[oi++]);const rest=others.slice(oi);if(targetSlot===0)return[...targetHand,...otherHand,...rest];else return[...otherHand,...targetHand,...rest];
+  const isOpp=mode.startsWith('opp_');
+  const targetSlot=isOpp?(1-adminSlot):adminSlot;
+  const modeCore=isOpp?mode.slice(4):mode;
+
+  // ── Sảnh 3→A: 12 lá 3 4 5 6 7 8 9 10 J Q K A (mỗi lá 1 chất) + 1 lá thường
+  if(modeCore==='straight12'){
+    const straightRanks=['3','4','5','6','7','8','9','10','J','Q','K','A'];
+    const suits=SUIT_ORDER; // s c d h
+    // Chọn 12 lá sảnh, mỗi rank 1 chất (xoay vòng chất để đẹp)
+    const straightCards=straightRanks.map((r,i)=>({r,s:suits[i%4]}));
+    // Lấy 1 lá thường (không trùng) để đủ 13 lá
+    const usedKeys=new Set(straightCards.map(c=>c.r+'_'+c.s));
+    const fullDeck=shuffle(makeDeck());
+    const filler=fullDeck.find(c=>!usedKeys.has(c.r+'_'+c.s)&&c.r!=='2');
+    const targetHand=sortCards([...straightCards,filler||{r:'3',s:'c'}]);
+    // Bộ bài còn lại cho đối thủ và dư
+    const remaining=fullDeck.filter(c=>!targetHand.some(t=>t.r===c.r&&t.s===c.s));
+    const otherHand=sortCards(remaining.slice(0,13));
+    const rest=remaining.slice(13);
+    if(targetSlot===0)return[...targetHand,...otherHand,...rest];
+    else return[...otherHand,...targetHand,...rest];
+  }
+
+  // ── Các mode cũ (twos, aces, bombany)
+  let rank;
+  if(modeCore==='twos')rank='2';
+  else if(modeCore==='aces')rank='A';
+  else if(modeCore==='bombany'){
+    const pool=['3','4','5','6','7','8','9','10','J','Q','K','A'];
+    rank=pool[Math.floor(Math.random()*pool.length)];
+  }
+  const fullDeck=shuffle(makeDeck());
+  const targets=fullDeck.filter(c=>c.r===rank);
+  const others=fullDeck.filter(c=>c.r!==rank);
+  let oi=0;
+  const targetHand=[...targets,...Array.from({length:9},()=>others[oi++])];
+  const otherHand=Array.from({length:13},()=>others[oi++]);
+  const rest=others.slice(oi);
+  if(targetSlot===0)return[...targetHand,...otherHand,...rest];
+  else return[...otherHand,...targetHand,...rest];
 }
 
 function getCombo(cards){
@@ -1306,14 +1348,25 @@ function autoHighlightHint(hand, lastPlay) {
   let hint = [];
 
   if (!lastPlay || !lastPlay.length) {
-    // ── ĐI TRƯỚC: triple > sảnh dài nhất > đôi lẻ > lá lẻ nhỏ nhất (không phải 2)
+    // ── ĐI TRƯỚC: ưu tiên lá lẻ (3..K) trước, sau đó mới dùng đôi/triple/sảnh
 
-    // 1. Triple
-    const triples = findCandidates(hand, 'triple', null, null);
-    if (triples.length) {
-      hint = triples[0];
+    const loneIdxs = hand.map((c, i) => i).filter(i => isLone(i));
+    // Lá lẻ không phải A, không phải 2 (ưu tiên cao nhất)
+    const loneNot2A = loneIdxs.filter(i => hand[i].r !== '2' && hand[i].r !== 'A');
+    // Lá lẻ không phải 2 (bao gồm A)
+    const loneNot2 = loneIdxs.filter(i => hand[i].r !== '2');
+
+    if (loneNot2A.length) {
+      // Ưu tiên 1: lá lẻ 3..K nhỏ nhất
+      hint = [loneNot2A[0]];
+    } else if (loneNot2.length) {
+      // Ưu tiên 2: lá lẻ A (nếu không có 3..K lẻ)
+      hint = [loneNot2[0]];
+    } else if (loneIdxs.length) {
+      // Ưu tiên 3: lá lẻ 2 (nếu chỉ còn lá 2 lẻ)
+      hint = [loneIdxs[0]];
     } else {
-      // 2. Sảnh dài nhất
+      // Không có lá lẻ nào → dùng sảnh hoặc đôi/triple nhỏ nhất
       let bestSeq = null;
       for (let len = Math.min(hand.length, 12); len >= 3; len--) {
         const seqs = findCandidates(hand, 'seq', len, null);
@@ -1322,21 +1375,14 @@ function autoHighlightHint(hand, lastPlay) {
       if (bestSeq) {
         hint = bestSeq;
       } else {
-        // 3. Lá lẻ nhỏ nhất trước (không phải A, không phải 2)
-        const loneIdxs = hand.map((c, i) => i).filter(i => isLone(i));
-        const loneNot2A = loneIdxs.filter(i => hand[i].r !== '2' && hand[i].r !== 'A');
-        const loneNot2 = loneIdxs.filter(i => hand[i].r !== '2');
-        if (loneNot2A.length) {
-          hint = [loneNot2A[0]];
-        } else if (loneNot2.length) {
-          hint = [loneNot2[0]];
-        } else if (loneIdxs.length) {
-          hint = [loneIdxs[0]];
+        const triples = findCandidates(hand, 'triple', null, null);
+        if (triples.length) {
+          hint = triples[0];
         } else {
-          // 4. Không có lá lẻ nào → mới đánh đôi nhỏ nhất
           const pairs = findCandidates(hand, 'pair', null, null);
-          const lonePair = pairs.find(idxs => rankCount[hand[idxs[0]].r] === 2);
-          hint = lonePair ? lonePair : (pairs.length ? pairs[0] : [0]);
+          // Ưu tiên đôi không phải 2
+          const nonTwoPair = pairs.find(idxs => hand[idxs[0]].r !== '2');
+          hint = nonTwoPair ? nonTwoPair : (pairs.length ? pairs[0] : [0]);
         }
       }
     }
